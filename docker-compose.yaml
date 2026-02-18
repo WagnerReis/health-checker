@@ -1,0 +1,42 @@
+services:
+
+  health-checker:
+    container_name: health-checker
+    hostname: health-checker
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - .:/app
+    environment:
+      - PORT=3091
+      - ENVIRONMENT=dev
+      - DATABASE_URL=postgresql://health-checker:health-checker@postgres-health-checker/health-checker
+    networks:
+      - health-checker-net
+    ports:
+      - 3091:3091
+    depends_on:
+      - postgres-health-checker
+  
+  postgres-health-checker:
+    image: postgres:13
+    hostname: postgres-health-checker
+    container_name: postgres-health-checker
+    restart: always
+    networks:
+      - health-checker-net
+    ports:
+      - 5439:5439
+    environment:
+      - POSTGRES_USER=health-checker
+      - POSTGRES_PASSWORD=health-checker
+      - POSTGRES_DB=health-checker
+    volumes:
+      - ./.docker/pg-data:/var/lib/postgresql/data
+      - ./.docker:/docker-entrypoint-initdb.d/
+
+networks:
+  health-checker-net:
+    driver: bridge
