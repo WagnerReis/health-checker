@@ -70,6 +70,23 @@ func TestSignUpUseCase_ErrorWhenCreateUserFails(t *testing.T) {
 	assert.ErrorIs(t, err, createErr)
 }
 
+func TestSignUpUseCase_ErrorWhenUserEntityIsInvalid(t *testing.T) {
+	repo := inmemory.NewUserRepositoryInMemory()
+	hasher := fakehasher.NewFakeHasher()
+	uc := NewSignUpUseCase(repo, hasher, fakelogger.NewFakeLogger())
+
+	invalidCommand := SignUpCommand{
+		Name:     "",
+		Email:    "john.doe@example.com",
+		Password: "password",
+	}
+
+	err := uc.Execute(context.Background(), invalidCommand)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "name is required")
+}
+
 func TestSignUpUseCase_ErrorWhenFindUserByEmailFails(t *testing.T) {
 	findErr := errors.New("find user by email failure")
 	repo := inmemory.NewUserRepositoryInMemory()

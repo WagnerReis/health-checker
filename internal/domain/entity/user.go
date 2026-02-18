@@ -1,9 +1,10 @@
 package entities
 
 import (
+	"errors"
 	"time"
 
-	valueobject "health-checker/internal/shared/value-object"
+	valueobjects "health-checker/internal/shared/value-object"
 
 	uuid "github.com/gofrs/uuid"
 )
@@ -18,18 +19,42 @@ type User struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
-func NewUser(id uuid.UUID, name, email, password string, refreshToken *string) *User {
+func NewUser(id uuid.UUID, name, emailStr, password string, refreshToken *string) (*User, error) {
 	if id == uuid.Nil {
-		id = valueobject.NewID(uuid.Nil).Value()
+		id = valueobjects.NewID(uuid.Nil).Value()
 	}
 
-	return &User{
+	email, err := valueobjects.NewEmail(emailStr)
+	if err != nil {
+		return nil, err
+	}
+
+	user := &User{
 		ID:           id,
 		Name:         name,
-		Email:        email,
+		Email:        email.String(),
 		Password:     password,
 		RefreshToken: refreshToken,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}
+
+	err = user.validate()
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (u *User) validate() error {
+	if u.Name == "" {
+		return errors.New("name is required")
+	}
+	if u.Password == "" {
+		return errors.New("password is required")
+	}
+	if len(u.Password) < 8 {
+		return errors.New("password must be at least 8 characters long")
+	}
+	return nil
 }
