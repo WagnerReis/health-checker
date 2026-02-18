@@ -1,0 +1,5 @@
+.env
+.docker
+bin
+HISTORIAS_USUARIO.md
+SYSTEM_DESIGN.md
