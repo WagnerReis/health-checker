@@ -51,7 +51,12 @@ func (u *SignUpUseCase) Execute(ctx context.Context, cmd SignUpCommand) error {
 		return err
 	}
 
-	user = entities.NewUser(id, cmd.Name, cmd.Email, *hashedPassword, nil)
+	user, err = entities.NewUser(id, cmd.Name, cmd.Email, *hashedPassword, nil)
+	if err != nil {
+		u.logger.Error("Failed to create user entity", application.Field{Key: "error", Value: err.Error()})
+		return err
+	}
+
 	err = u.userRepository.Create(ctx, user)
 	if err != nil {
 		u.logger.Error("Failed to create user", application.Field{Key: "error", Value: err.Error()})
