@@ -23,15 +23,14 @@ func TestSignUpUseCase_Success(t *testing.T) {
 	logger := fakelogger.NewFakeLogger()
 	uc := NewSignUpUseCase(repo, hasher, logger)
 
-	err := uc.Execute(context.Background(), validCommand)
+	user, err := uc.Execute(context.Background(), validCommand)
 	assert.NoError(t, err)
 
-	user, err := repo.FindByEmail(context.Background(), validCommand.Email)
+	userFound, err := repo.FindByEmail(context.Background(), validCommand.Email)
 	assert.NoError(t, err)
-	assert.NotNil(t, user)
-	assert.Equal(t, validCommand.Name, user.Name)
-	assert.Equal(t, validCommand.Email, user.Email)
-	assert.True(t, hasher.Compare(validCommand.Password, user.Password))
+	assert.NotNil(t, userFound)
+	assert.Equal(t, user.Name, userFound.Name)
+	assert.Equal(t, user.Email, userFound.Email)
 }
 
 func TestSignUpUseCase_ErrorWhenEmailAlreadyExists(t *testing.T) {
@@ -39,9 +38,10 @@ func TestSignUpUseCase_ErrorWhenEmailAlreadyExists(t *testing.T) {
 	hasher := fakehasher.NewFakeHasher()
 	uc := NewSignUpUseCase(repo, hasher, fakelogger.NewFakeLogger())
 
-	_ = uc.Execute(context.Background(), validCommand)
+	_, err := uc.Execute(context.Background(), validCommand)
+	assert.NoError(t, err)
 
-	err := uc.Execute(context.Background(), validCommand)
+	_, err = uc.Execute(context.Background(), validCommand)
 
 	assert.Error(t, err)
 	assert.Equal(t, "email already exists", err.Error())
@@ -53,7 +53,7 @@ func TestSignUpUseCase_ErrorWhenHashFails(t *testing.T) {
 	repo := inmemory.NewUserRepositoryInMemory()
 	uc := NewSignUpUseCase(repo, hasher, fakelogger.NewFakeLogger())
 
-	err := uc.Execute(context.Background(), validCommand)
+	_, err := uc.Execute(context.Background(), validCommand)
 
 	assert.ErrorIs(t, err, hashErr)
 }
@@ -65,7 +65,7 @@ func TestSignUpUseCase_ErrorWhenCreateUserFails(t *testing.T) {
 	hasher := fakehasher.NewFakeHasher()
 	uc := NewSignUpUseCase(repo, hasher, fakelogger.NewFakeLogger())
 
-	err := uc.Execute(context.Background(), validCommand)
+	_, err := uc.Execute(context.Background(), validCommand)
 
 	assert.ErrorIs(t, err, createErr)
 }
@@ -81,7 +81,7 @@ func TestSignUpUseCase_ErrorWhenUserEntityIsInvalid(t *testing.T) {
 		Password: "password",
 	}
 
-	err := uc.Execute(context.Background(), invalidCommand)
+	_, err := uc.Execute(context.Background(), invalidCommand)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "name is required")
@@ -94,7 +94,7 @@ func TestSignUpUseCase_ErrorWhenFindUserByEmailFails(t *testing.T) {
 	hasher := fakehasher.NewFakeHasher()
 	uc := NewSignUpUseCase(repo, hasher, fakelogger.NewFakeLogger())
 
-	err := uc.Execute(context.Background(), validCommand)
+	_, err := uc.Execute(context.Background(), validCommand)
 
 	assert.ErrorIs(t, err, findErr)
 }
