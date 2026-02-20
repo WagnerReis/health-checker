@@ -5,8 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"health-checker/config"
+	"health-checker/internal/application/usecases"
+	"health-checker/internal/infra/cryptography"
 	router "health-checker/internal/infra/http"
+	"health-checker/internal/infra/http/handlers"
 	"health-checker/internal/infra/logger"
+	"health-checker/internal/infra/persistence/inmemory/repository"
 	"log"
 	"net/http"
 	"os"
@@ -22,7 +26,22 @@ func main() {
 	}
 
 	cfg := config.LoadConfig()
-	appRouter := router.NewAppRouter()
+
+	tokenGenerator := cryptography.NewJWTTokenGenerator()
+
+	hasher := cryptography.NewBcrypterHasher()
+
+	// Repositories
+	userRepository := repository.NewUserRepositoryInMemory()
+
+	// UseCases
+	signUpUseCase := usecases.NewSignUpUseCase(userRepository, hasher, tokenGenerator, *cfg, logger)
+
+	// Handlers
+	authHandler := handlers.NewAuthHandler(*signUpUseCase)
+
+	// Router
+	appRouter := router.NewAppRouter(authHandler)
 	router := appRouter.InitializeRoutes()
 
 	server := &http.Server{
