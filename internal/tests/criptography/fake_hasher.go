@@ -1,4 +1,4 @@
-package hasher
+package criptography
 
 type FakeHasher struct {
 	ErrOnHash error

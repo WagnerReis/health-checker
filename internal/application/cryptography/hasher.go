@@ -1,4 +1,4 @@
-package hasher
+package cryptography
 
 type Hasher interface {
 	Hash(password string) (*string, error)

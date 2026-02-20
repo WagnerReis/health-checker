@@ -3,8 +3,9 @@ package usecases
 import (
 	"context"
 	"errors"
+	"health-checker/config"
 	inmemory "health-checker/internal/infra/persistence/inmemory/repository"
-	fakehasher "health-checker/internal/tests/hasher"
+	"health-checker/internal/tests/criptography"
 	fakelogger "health-checker/internal/tests/logger"
 	"testing"
 
@@ -17,26 +18,43 @@ var validCommand = SignUpCommand{
 	Password: "password",
 }
 
+func NewUseCase() *SignUpUseCase {
+	repo := inmemory.NewUserRepositoryInMemory()
+	hasher := criptography.NewFakeHasher()
+	logger := fakelogger.NewFakeLogger()
+	tokenGenerator := criptography.NewFakeJWTGenerator()
+	config := config.Config{
+		AccessTokenExpiration:  10,
+		RefreshTokenExpiration: 20,
+	}
+	return NewSignUpUseCase(repo, hasher, tokenGenerator, config, logger)
+}
+
 func TestSignUpUseCase_Success(t *testing.T) {
 	repo := inmemory.NewUserRepositoryInMemory()
-	hasher := fakehasher.NewFakeHasher()
+	hasher := criptography.NewFakeHasher()
+	tokenGenerator := criptography.NewFakeJWTGenerator()
 	logger := fakelogger.NewFakeLogger()
-	uc := NewSignUpUseCase(repo, hasher, logger)
+	config := config.Config{
+		AccessTokenExpiration:  10,
+		RefreshTokenExpiration: 20,
+	}
+	uc := NewSignUpUseCase(repo, hasher, tokenGenerator, config, logger)
 
-	user, err := uc.Execute(context.Background(), validCommand)
+	authOutput, err := uc.Execute(context.Background(), validCommand)
 	assert.NoError(t, err)
 
 	userFound, err := repo.FindByEmail(context.Background(), validCommand.Email)
 	assert.NoError(t, err)
 	assert.NotNil(t, userFound)
-	assert.Equal(t, user.Name, userFound.Name)
-	assert.Equal(t, user.Email, userFound.Email)
+	assert.Equal(t, authOutput.User.Name, userFound.Name)
+	assert.Equal(t, authOutput.User.Email, userFound.Email)
+	assert.Equal(t, authOutput.RefreshToken, *userFound.RefreshToken)
+	assert.Equal(t, authOutput.AccessToken, "token")
 }
 
 func TestSignUpUseCase_ErrorWhenEmailAlreadyExists(t *testing.T) {
-	repo := inmemory.NewUserRepositoryInMemory()
-	hasher := fakehasher.NewFakeHasher()
-	uc := NewSignUpUseCase(repo, hasher, fakelogger.NewFakeLogger())
+	uc := NewUseCase()
 
 	_, err := uc.Execute(context.Background(), validCommand)
 	assert.NoError(t, err)
@@ -49,9 +67,14 @@ func TestSignUpUseCase_ErrorWhenEmailAlreadyExists(t *testing.T) {
 
 func TestSignUpUseCase_ErrorWhenHashFails(t *testing.T) {
 	hashErr := errors.New("hash entropy failure")
-	hasher := &fakehasher.FakeHasher{ErrOnHash: hashErr}
+	hasher := &criptography.FakeHasher{ErrOnHash: hashErr}
 	repo := inmemory.NewUserRepositoryInMemory()
-	uc := NewSignUpUseCase(repo, hasher, fakelogger.NewFakeLogger())
+	tokenGenerator := criptography.NewFakeJWTGenerator()
+	config := config.Config{
+		AccessTokenExpiration:  10,
+		RefreshTokenExpiration: 20,
+	}
+	uc := NewSignUpUseCase(repo, hasher, tokenGenerator, config, fakelogger.NewFakeLogger())
 
 	_, err := uc.Execute(context.Background(), validCommand)
 
@@ -62,8 +85,13 @@ func TestSignUpUseCase_ErrorWhenCreateUserFails(t *testing.T) {
 	createErr := errors.New("duplicate email")
 	repo := inmemory.NewUserRepositoryInMemory()
 	repo.ErrOnCreate = createErr
-	hasher := fakehasher.NewFakeHasher()
-	uc := NewSignUpUseCase(repo, hasher, fakelogger.NewFakeLogger())
+	hasher := criptography.NewFakeHasher()
+	tokenGenerator := criptography.NewFakeJWTGenerator()
+	config := config.Config{
+		AccessTokenExpiration:  10,
+		RefreshTokenExpiration: 20,
+	}
+	uc := NewSignUpUseCase(repo, hasher, tokenGenerator, config, fakelogger.NewFakeLogger())
 
 	_, err := uc.Execute(context.Background(), validCommand)
 
@@ -71,9 +99,7 @@ func TestSignUpUseCase_ErrorWhenCreateUserFails(t *testing.T) {
 }
 
 func TestSignUpUseCase_ErrorWhenUserEntityIsInvalid(t *testing.T) {
-	repo := inmemory.NewUserRepositoryInMemory()
-	hasher := fakehasher.NewFakeHasher()
-	uc := NewSignUpUseCase(repo, hasher, fakelogger.NewFakeLogger())
+	uc := NewUseCase()
 
 	invalidCommand := SignUpCommand{
 		Name:     "",
@@ -91,8 +117,13 @@ func TestSignUpUseCase_ErrorWhenFindUserByEmailFails(t *testing.T) {
 	findErr := errors.New("find user by email failure")
 	repo := inmemory.NewUserRepositoryInMemory()
 	repo.ErrOnFind = findErr
-	hasher := fakehasher.NewFakeHasher()
-	uc := NewSignUpUseCase(repo, hasher, fakelogger.NewFakeLogger())
+	hasher := criptography.NewFakeHasher()
+	tokenGenerator := criptography.NewFakeJWTGenerator()
+	config := config.Config{
+		AccessTokenExpiration:  10,
+		RefreshTokenExpiration: 20,
+	}
+	uc := NewSignUpUseCase(repo, hasher, tokenGenerator, config, fakelogger.NewFakeLogger())
 
 	_, err := uc.Execute(context.Background(), validCommand)
 
