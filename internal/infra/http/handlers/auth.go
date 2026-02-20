@@ -1,11 +1,10 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"health-checker/internal/application/usecases"
+	"health-checker/internal/infra/http/helpers"
 	"health-checker/internal/infra/http/presenters"
-	"health-checker/internal/infra/http/validation"
 	"net/http"
 )
 
@@ -26,15 +25,9 @@ type SignUpRequest struct {
 }
 
 func (h *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
-	var req SignUpRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
+	req, err := helpers.DecodeAndValidateRequest[SignUpRequest](w, r)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to decode request: %v", err), http.StatusBadRequest)
-		return
-	}
-
-	if err := validation.GetValidator().Struct(req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		helpers.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -44,15 +37,9 @@ func (h *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		Password: req.Password,
 	})
 	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to sign up: %v", err), http.StatusInternalServerError)
+		helpers.WriteError(w, http.StatusInternalServerError, fmt.Sprintf("failed to sign up: %v", err))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	err = json.NewEncoder(w).Encode(presenters.SignUpPresenter(*authOutput))
-	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to encode response: %v", err), http.StatusInternalServerError)
-		return
-	}
+	helpers.WriteJSONResponse(w, http.StatusCreated, presenters.SignUpPresenter(*authOutput))
 }
