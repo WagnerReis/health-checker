@@ -12,7 +12,7 @@ func NewFakeJWTGenerator() *FakeJWTGenerator {
 	return &FakeJWTGenerator{}
 }
 
-func (g *FakeJWTGenerator) Generate(userID uuid.UUID, email string, expiration int) (string, error) {
+func (g *FakeJWTGenerator) Generate(userID uuid.UUID, email string, secretKey string, expiration int) (string, error) {
 	g.callCount++
 	if g.ErrOnGenerate != nil {
 		if g.FailOnCall == 0 || g.callCount == g.FailOnCall {
