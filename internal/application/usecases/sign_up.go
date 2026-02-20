@@ -81,13 +81,13 @@ func (u *SignUpUseCase) Execute(ctx context.Context, cmd SignUpCommand) (*SignUp
 	}
 	u.logger.Info("User created successfully", application.Field{Key: "user_id", Value: user.ID.String()})
 
-	accessToken, err := u.tokenGenerator.Generate(user.ID, user.Email, u.config.AccessTokenExpiration)
+	accessToken, err := u.tokenGenerator.Generate(user.ID, user.Email, u.config.AccessTokenSecret, u.config.AccessTokenExpiration)
 	if err != nil {
 		u.logger.Error("Failed to generate access token", application.Field{Key: "error", Value: err.Error()})
 		return nil, err
 	}
 
-	refreshToken, err := u.tokenGenerator.Generate(user.ID, user.Email, u.config.RefreshTokenExpiration)
+	refreshToken, err := u.tokenGenerator.Generate(user.ID, user.Email, u.config.RefreshTokenSecret, u.config.RefreshTokenExpiration)
 	if err != nil {
 		u.logger.Error("Failed to generate refresh token", application.Field{Key: "error", Value: err.Error()})
 		return nil, err
