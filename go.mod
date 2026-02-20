@@ -4,6 +4,7 @@ go 1.25.6
 
 require (
 	github.com/gofrs/uuid v4.4.0+incompatible
+	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/stretchr/testify v1.8.1
 	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.48.0

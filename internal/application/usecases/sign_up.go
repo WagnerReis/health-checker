@@ -3,7 +3,8 @@ package usecases
 import (
 	"context"
 	"errors"
-	"health-checker/internal/application/hasher"
+	"health-checker/config"
+	"health-checker/internal/application/cryptography"
 	application "health-checker/internal/application/logger"
 	entities "health-checker/internal/domain/entity"
 	domainerrors "health-checker/internal/domain/errors"
@@ -19,22 +20,32 @@ type SignUpCommand struct {
 	Password string
 }
 
-type SignUpOutput struct {
+type User struct {
 	UserID uuid.UUID
 	Name   string
 	Email  string
 }
 
+type SignUpOutput struct {
+	User         User
+	AccessToken  string
+	RefreshToken string
+}
+
 type SignUpUseCase struct {
 	userRepository repository.UserRepository
-	hasher         hasher.Hasher
+	hasher         cryptography.Hasher
+	tokenGenerator cryptography.TokenGenerator
+	config         config.Config
 	logger         application.Logger
 }
 
-func NewSignUpUseCase(userRepository repository.UserRepository, hasher hasher.Hasher, logger application.Logger) *SignUpUseCase {
+func NewSignUpUseCase(userRepository repository.UserRepository, hasher cryptography.Hasher, tokenGenerator cryptography.TokenGenerator, config config.Config, logger application.Logger) *SignUpUseCase {
 	return &SignUpUseCase{
 		userRepository: userRepository,
 		hasher:         hasher,
+		tokenGenerator: tokenGenerator,
+		config:         config,
 		logger:         logger,
 	}
 }
@@ -69,9 +80,33 @@ func (u *SignUpUseCase) Execute(ctx context.Context, cmd SignUpCommand) (*SignUp
 		return nil, err
 	}
 	u.logger.Info("User created successfully", application.Field{Key: "user_id", Value: user.ID.String()})
+
+	accessToken, err := u.tokenGenerator.Generate(user.ID, user.Email, u.config.AccessTokenExpiration)
+	if err != nil {
+		u.logger.Error("Failed to generate access token", application.Field{Key: "error", Value: err.Error()})
+		return nil, err
+	}
+
+	refreshToken, err := u.tokenGenerator.Generate(user.ID, user.Email, u.config.RefreshTokenExpiration)
+	if err != nil {
+		u.logger.Error("Failed to generate refresh token", application.Field{Key: "error", Value: err.Error()})
+		return nil, err
+	}
+
+	user.RefreshToken = &refreshToken
+	err = u.userRepository.Update(ctx, user)
+	if err != nil {
+		u.logger.Error("Failed to update user", application.Field{Key: "error", Value: err.Error()})
+		return nil, err
+	}
+
 	return &SignUpOutput{
-		UserID: user.ID,
-		Name:   user.Name,
-		Email:  user.Email,
+		User: User{
+			UserID: user.ID,
+			Name:   user.Name,
+			Email:  user.Email,
+		},
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	}, nil
 }

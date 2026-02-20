@@ -52,3 +52,10 @@ func (r *UserRepositoryInMemory) FindByEmail(ctx context.Context, email string) 
 	}
 	return nil, errors.ErrUserNotFound
 }
+
+func (r *UserRepositoryInMemory) Update(ctx context.Context, user *entities.User) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.users[user.ID] = user
+	return nil
+}
