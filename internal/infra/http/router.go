@@ -1,19 +1,25 @@
-package router
+package infrahttp
 
 import (
 	"encoding/json"
+	"health-checker/internal/infra/http/handlers"
 	"net/http"
 )
 
-type AppRouter struct{}
+type AppRouter struct {
+	authHandler *handlers.AuthHandler
+}
 
-func NewAppRouter() *AppRouter {
-	return &AppRouter{}
+func NewAppRouter(authHandler *handlers.AuthHandler) *AppRouter {
+	return &AppRouter{
+		authHandler,
+	}
 }
 
 func (r *AppRouter) InitializeRoutes() *http.ServeMux {
 	router := http.NewServeMux()
 	router.HandleFunc("GET /health", GetHealth)
+	router.HandleFunc("POST /api/v1/auth/sign-up", r.authHandler.SignUp)
 	return router
 }
 

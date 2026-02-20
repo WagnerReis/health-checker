@@ -13,6 +13,10 @@ services:
       - PORT=3091
       - ENVIRONMENT=dev
       - DATABASE_URL=postgresql://health-checker:health-checker@postgres-health-checker/health-checker
+      - ACCESS_TOKEN_SECRET=asdçalkdçlaskqoppiwkad
+      - REFRESH_TOKEN_SECRET=asdçalkdçlaskqoppiwkad
+      - ACCESS_TOKEN_EXPIRATION=15
+      - REFRESH_TOKEN_EXPIRATION=720
     networks:
       - health-checker-net
     ports:
