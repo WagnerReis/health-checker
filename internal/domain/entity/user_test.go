@@ -1,6 +1,7 @@
 package entities
 
 import (
+	domainerrors "health-checker/internal/domain/errors"
 	valueobjects "health-checker/internal/shared/value-object"
 	"testing"
 
@@ -33,19 +34,19 @@ func TestUser_NewUser_ErrorWhenNameIsEmpty(t *testing.T) {
 	user, err := NewUser(uuid.Nil, "", "john.doe@example.com", "password", nil)
 	assert.Error(t, err)
 	assert.Nil(t, user)
-	assert.EqualError(t, err, "name is required")
+	assert.EqualError(t, err, domainerrors.ErrUserNameRequired.Error())
 }
 
 func TestUser_NewUser_ErrorWhenPasswordIsEmpty(t *testing.T) {
 	user, err := NewUser(uuid.Nil, "John Doe", "john.doe@example.com", "", nil)
 	assert.Error(t, err)
 	assert.Nil(t, user)
-	assert.EqualError(t, err, "password is required")
+	assert.EqualError(t, err, domainerrors.ErrUserPasswordRequired.Error())
 }
 
 func TestUser_NewUser_ErrorWhenPasswordIsLessThan8Characters(t *testing.T) {
 	user, err := NewUser(uuid.Nil, "John Doe", "john.doe@example.com", "pass", nil)
 	assert.Error(t, err)
 	assert.Nil(t, user)
-	assert.EqualError(t, err, "password must be at least 8 characters long")
+	assert.EqualError(t, err, domainerrors.ErrUserPasswordTooShort.Error())
 }

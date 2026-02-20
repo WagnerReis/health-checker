@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"health-checker/config"
+	domainerrors "health-checker/internal/domain/errors"
 	inmemory "health-checker/internal/infra/persistence/inmemory/repository"
 	"health-checker/internal/tests/criptography"
 	fakelogger "health-checker/internal/tests/logger"
@@ -62,7 +63,7 @@ func TestSignUpUseCase_ErrorWhenEmailAlreadyExists(t *testing.T) {
 	_, err = uc.Execute(context.Background(), validCommand)
 
 	assert.Error(t, err)
-	assert.Equal(t, "email already exists", err.Error())
+	assert.Equal(t, err, domainerrors.ErrUserEmailAlreadyExists)
 }
 
 func TestSignUpUseCase_ErrorWhenHashFails(t *testing.T) {
@@ -110,7 +111,7 @@ func TestSignUpUseCase_ErrorWhenUserEntityIsInvalid(t *testing.T) {
 	_, err := uc.Execute(context.Background(), invalidCommand)
 
 	assert.Error(t, err)
-	assert.EqualError(t, err, "name is required")
+	assert.Equal(t, err, domainerrors.ErrUserNameRequired)
 }
 
 func TestSignUpUseCase_ErrorWhenFindUserByEmailFails(t *testing.T) {

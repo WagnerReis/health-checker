@@ -1,9 +1,9 @@
 package entities
 
 import (
-	"errors"
 	"time"
 
+	domainerrors "health-checker/internal/domain/errors"
 	valueobjects "health-checker/internal/shared/value-object"
 
 	uuid "github.com/gofrs/uuid"
@@ -48,13 +48,13 @@ func NewUser(id uuid.UUID, name, emailStr, password string, refreshToken *string
 
 func (u *User) validate() error {
 	if u.Name == "" {
-		return errors.New("name is required")
+		return domainerrors.ErrUserNameRequired
 	}
 	if u.Password == "" {
-		return errors.New("password is required")
+		return domainerrors.ErrUserPasswordRequired
 	}
 	if len(u.Password) < 8 {
-		return errors.New("password must be at least 8 characters long")
+		return domainerrors.ErrUserPasswordTooShort
 	}
 	return nil
 }
