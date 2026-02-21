@@ -130,3 +130,46 @@ func TestSignUpUseCase_ErrorWhenFindUserByEmailFails(t *testing.T) {
 
 	assert.ErrorIs(t, err, findErr)
 }
+
+func TestSignUpUseCase_ErrorWhenGenerateAccessTokenFails(t *testing.T) {
+	repo := inmemory.NewUserRepositoryInMemory()
+	hasher := criptography.NewFakeHasher()
+	tokenGenerator := &criptography.FakeJWTGenerator{ErrOnGenerate: errors.New("generate access token failure")}
+	config := config.Config{
+		AccessTokenExpiration:  10,
+		RefreshTokenExpiration: 20,
+	}
+	uc := NewSignUpUseCase(repo, hasher, tokenGenerator, config, fakelogger.NewFakeLogger())
+	_, err := uc.Execute(context.Background(), validCommand)
+	assert.ErrorIs(t, err, tokenGenerator.ErrOnGenerate)
+}
+
+func TestSignUpUseCase_ErrorWhenGenerateRefreshTokenFails(t *testing.T) {
+	repo := inmemory.NewUserRepositoryInMemory()
+	hasher := criptography.NewFakeHasher()
+	tokenGenerator := &criptography.FakeJWTGenerator{
+		ErrOnGenerate: errors.New("generate refresh token failure"),
+		FailOnCall:    2,
+	}
+	config := config.Config{
+		AccessTokenExpiration:  10,
+		RefreshTokenExpiration: 20,
+	}
+	uc := NewSignUpUseCase(repo, hasher, tokenGenerator, config, fakelogger.NewFakeLogger())
+	_, err := uc.Execute(context.Background(), validCommand)
+	assert.ErrorIs(t, err, tokenGenerator.ErrOnGenerate)
+}
+
+func TestSignUpUseCase_ErrorWhenUpdateUserFails(t *testing.T) {
+	repo := inmemory.NewUserRepositoryInMemory()
+	repo.ErrOnUpdate = errors.New("update user failure")
+	hasher := criptography.NewFakeHasher()
+	tokenGenerator := criptography.NewFakeJWTGenerator()
+	config := config.Config{
+		AccessTokenExpiration:  10,
+		RefreshTokenExpiration: 20,
+	}
+	uc := NewSignUpUseCase(repo, hasher, tokenGenerator, config, fakelogger.NewFakeLogger())
+	_, err := uc.Execute(context.Background(), validCommand)
+	assert.ErrorIs(t, err, repo.ErrOnUpdate)
+}
