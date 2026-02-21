@@ -37,7 +37,7 @@ func (r *UserRepository) Update(ctx context.Context, user *entities.User) error 
 		Name:         user.Name,
 		Email:        user.Email,
 		Password:     user.Password,
-		RefreshToken: sql.NullString{String: *user.RefreshToken, Valid: user.RefreshToken != nil && *user.RefreshToken != ""},
+		RefreshToken: NullString(user.RefreshToken),
 	})
 	if err != nil {
 		return err
