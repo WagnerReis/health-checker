@@ -20,11 +20,10 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 
 func (r *UserRepository) Create(ctx context.Context, user *entities.User) error {
 	err := r.queries.CreateUser(ctx, sqlc.CreateUserParams{
-		ID:           user.ID,
-		Name:         user.Name,
-		Email:        user.Email,
-		Password:     user.Password,
-		RefreshToken: NullString(user.RefreshToken),
+		ID:       user.ID,
+		Name:     user.Name,
+		Email:    user.Email,
+		Password: user.Password,
 	})
 	if err != nil {
 		return err
@@ -34,10 +33,9 @@ func (r *UserRepository) Create(ctx context.Context, user *entities.User) error 
 
 func (r *UserRepository) Update(ctx context.Context, user *entities.User) error {
 	err := r.queries.Update(ctx, sqlc.UpdateParams{
-		Name:         user.Name,
-		Email:        user.Email,
-		Password:     user.Password,
-		RefreshToken: NullString(user.RefreshToken),
+		Name:     user.Name,
+		Email:    user.Email,
+		Password: user.Password,
 	})
 	if err != nil {
 		return err
@@ -54,13 +52,12 @@ func (r *UserRepository) FindByID(ctx context.Context, id uuid.UUID) (*entities.
 		return nil, err
 	}
 	return &entities.User{
-		ID:           user.ID,
-		Name:         user.Name,
-		Email:        user.Email,
-		Password:     user.Password,
-		RefreshToken: &user.RefreshToken.String,
-		CreatedAt:    user.CreatedAt,
-		UpdatedAt:    user.UpdatedAt,
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		Password:  user.Password,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
 	}, nil
 }
 
@@ -73,12 +70,11 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*entiti
 		return nil, err
 	}
 	return &entities.User{
-		ID:           user.ID,
-		Name:         user.Name,
-		Email:        user.Email,
-		Password:     user.Password,
-		RefreshToken: &user.RefreshToken.String,
-		CreatedAt:    user.CreatedAt,
-		UpdatedAt:    user.UpdatedAt,
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		Password:  user.Password,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
 	}, nil
 }

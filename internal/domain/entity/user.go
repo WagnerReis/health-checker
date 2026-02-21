@@ -10,13 +10,12 @@ import (
 )
 
 type User struct {
-	ID           uuid.UUID `json:"id"`
-	Name         string    `json:"name"`
-	Email        string    `json:"email"`
-	Password     string    `json:"password"`
-	RefreshToken *string   `json:"refresh_token"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Password  string    `json:"password"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func NewUser(id uuid.UUID, name, emailStr, password string, refreshToken *string) (*User, error) {
@@ -30,13 +29,12 @@ func NewUser(id uuid.UUID, name, emailStr, password string, refreshToken *string
 	}
 
 	user := &User{
-		ID:           id,
-		Name:         name,
-		Email:        email.String(),
-		Password:     password,
-		RefreshToken: refreshToken,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		ID:        id,
+		Name:      name,
+		Email:     email.String(),
+		Password:  password,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 
 	err = user.validate()

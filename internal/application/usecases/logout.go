@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"errors"
+	"health-checker/internal/application/cryptography"
 	application "health-checker/internal/application/logger"
 	domainerrors "health-checker/internal/domain/errors"
 	"health-checker/internal/domain/repository"
@@ -11,18 +12,28 @@ import (
 )
 
 type LogoutCommand struct {
-	UserID uuid.UUID
+	UserID           uuid.UUID
+	RefreshTokenHash string
 }
 
 type LogoutUseCase struct {
-	userRepository repository.UserRepository
-	logger         application.Logger
+	userRepository         repository.UserRepository
+	refreshTokenRepository repository.RefreshTokenRepository
+	sha256Hash             cryptography.SHA256Hash
+	logger                 application.Logger
 }
 
-func NewLogoutUseCase(userRepository repository.UserRepository, logger application.Logger) *LogoutUseCase {
+func NewLogoutUseCase(
+	userRepository repository.UserRepository,
+	refreshTokenRepository repository.RefreshTokenRepository,
+	sha256Hash cryptography.SHA256Hash,
+	logger application.Logger,
+) *LogoutUseCase {
 	return &LogoutUseCase{
-		userRepository: userRepository,
-		logger:         logger,
+		userRepository:         userRepository,
+		refreshTokenRepository: refreshTokenRepository,
+		sha256Hash:             sha256Hash,
+		logger:                 logger,
 	}
 }
 
@@ -35,9 +46,12 @@ func (u *LogoutUseCase) Execute(ctx context.Context, cmd LogoutCommand) error {
 		return err
 	}
 
-	user.RefreshToken = nil
-	err = u.userRepository.Update(ctx, user)
+	refreshTokenHash := u.sha256Hash.Hash([]byte(cmd.RefreshTokenHash))
+	err = u.refreshTokenRepository.Revoke(ctx, refreshTokenHash)
 	if err != nil {
+		if errors.Is(err, domainerrors.ErrRefreshTokenNotFound) {
+			return domainerrors.ErrRefreshTokenNotFound
+		}
 		return err
 	}
 
