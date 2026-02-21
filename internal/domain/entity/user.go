@@ -53,7 +53,7 @@ func (u *User) validate() error {
 	if u.Password == "" {
 		return domainerrors.ErrUserPasswordRequired
 	}
-	if len(u.Password) < 8 {
+	if len(u.Password) < 6 {
 		return domainerrors.ErrUserPasswordTooShort
 	}
 	return nil

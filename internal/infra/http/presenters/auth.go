@@ -12,14 +12,14 @@ type User struct {
 	Email string    `json:"email"`
 }
 
-type SignUpResponse struct {
+type AuthResponse struct {
 	User         User   `json:"user"`
 	AccessToken  string `json:"accessToken"`
 	RefreshToken string `json:"refreshToken"`
 }
 
-func SignUpPresenter(output usecases.SignUpOutput) *SignUpResponse {
-	return &SignUpResponse{
+func AuthPresenter(output usecases.AuthOutput) *AuthResponse {
+	return &AuthResponse{
 		User: User{
 			ID:    output.User.UserID,
 			Name:  output.User.Name,
