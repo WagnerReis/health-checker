@@ -5,7 +5,7 @@ import (
 	valueobjects "health-checker/internal/shared/value-object"
 	"testing"
 
-	uuid "github.com/gofrs/uuid"
+	uuid "github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 

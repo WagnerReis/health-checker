@@ -3,7 +3,7 @@ package presenters
 import (
 	"health-checker/internal/application/usecases"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 )
 
 type User struct {

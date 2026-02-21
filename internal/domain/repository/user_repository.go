@@ -4,7 +4,7 @@ import (
 	"context"
 	entities "health-checker/internal/domain/entity"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 )
 
 type UserRepository interface {

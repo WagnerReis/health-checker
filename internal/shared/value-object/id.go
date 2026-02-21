@@ -1,6 +1,6 @@
 package valueobjects
 
-import "github.com/gofrs/uuid"
+import "github.com/google/uuid"
 
 type ID struct {
 	value uuid.UUID
@@ -8,8 +8,7 @@ type ID struct {
 
 func NewID(value uuid.UUID) *ID {
 	if value == uuid.Nil {
-		id, _ := uuid.NewV4()
-		value = id
+		value = uuid.New()
 	}
 	return &ID{value: value}
 }

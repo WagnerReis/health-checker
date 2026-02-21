@@ -5,7 +5,7 @@ import (
 	"errors"
 	"health-checker/config"
 	domainerrors "health-checker/internal/domain/errors"
-	inmemory "health-checker/internal/infra/persistence/inmemory/repository"
+	inmemory "health-checker/internal/infra/persistence/inmemory"
 	"health-checker/internal/tests/criptography"
 	fakelogger "health-checker/internal/tests/logger"
 	"testing"

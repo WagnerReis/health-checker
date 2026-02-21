@@ -10,7 +10,8 @@ import (
 	router "health-checker/internal/infra/http"
 	"health-checker/internal/infra/http/handlers"
 	"health-checker/internal/infra/logger"
-	"health-checker/internal/infra/persistence/inmemory/repository"
+	dbutils "health-checker/internal/infra/persistence/database"
+	"health-checker/internal/infra/persistence/postgres"
 	"log"
 	"net/http"
 	"os"
@@ -28,11 +29,15 @@ func main() {
 	cfg := config.LoadConfig()
 
 	tokenGenerator := cryptography.NewJWTTokenGenerator()
-
 	hasher := cryptography.NewBcrypterHasher()
 
+	db, err := dbutils.NewPool(context.Background())
+	if err != nil {
+		logger.Fatal(fmt.Sprintf("Error creating database pool: %v", err))
+	}
+
 	// Repositories
-	userRepository := repository.NewUserRepositoryInMemory()
+	userRepository := postgres.NewUserRepository(db)
 
 	// UseCases
 	signUpUseCase := usecases.NewSignUpUseCase(userRepository, hasher, tokenGenerator, *cfg, logger)
