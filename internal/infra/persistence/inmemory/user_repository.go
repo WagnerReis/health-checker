@@ -4,6 +4,7 @@ import (
 	"context"
 	entities "health-checker/internal/domain/entity"
 	"health-checker/internal/domain/errors"
+	domainerrors "health-checker/internal/domain/errors"
 	"sync"
 
 	"github.com/google/uuid"
@@ -14,6 +15,7 @@ type UserRepositoryInMemory struct {
 	mu          sync.Mutex
 	ErrOnCreate error
 	ErrOnFind   error
+	ErrOnUpdate error
 }
 
 func NewUserRepositoryInMemory() *UserRepositoryInMemory {
@@ -54,8 +56,14 @@ func (r *UserRepositoryInMemory) FindByEmail(ctx context.Context, email string) 
 }
 
 func (r *UserRepositoryInMemory) Update(ctx context.Context, user *entities.User) error {
+	if r.ErrOnUpdate != nil {
+		return r.ErrOnUpdate
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if _, ok := r.users[user.ID]; !ok {
+		return domainerrors.ErrUserNotFound
+	}
 	r.users[user.ID] = user
 	return nil
 }
