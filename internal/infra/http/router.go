@@ -3,6 +3,7 @@ package infrahttp
 import (
 	"encoding/json"
 	"health-checker/internal/infra/http/handlers"
+	"health-checker/internal/infra/http/middlewares"
 	"net/http"
 )
 
@@ -21,6 +22,7 @@ func (r *AppRouter) InitializeRoutes() *http.ServeMux {
 	router.HandleFunc("GET /health", GetHealth)
 	router.HandleFunc("POST /api/v1/auth/sign-up", r.authHandler.SignUp)
 	router.HandleFunc("POST /api/v1/auth/login", r.authHandler.Login)
+	router.Handle("POST /api/v1/auth/logout", middlewares.AuthMiddleware(http.HandlerFunc(r.authHandler.Logout)))
 	return router
 }
 
