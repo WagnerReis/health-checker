@@ -32,7 +32,7 @@ services:
     networks:
       - health-checker-net
     ports:
-      - 5439:5439
+      - 5439:5432
     environment:
       - POSTGRES_USER=health-checker
       - POSTGRES_PASSWORD=health-checker
@@ -40,6 +40,25 @@ services:
     volumes:
       - ./.docker/pg-data:/var/lib/postgresql/data
       - ./.docker:/docker-entrypoint-initdb.d/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U health-checker"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    image: migrate/migrate
+    container_name: migrate
+    depends_on:
+      postgres-health-checker:
+        condition: service_healthy
+    networks:
+      - health-checker-net
+    volumes:
+      - ./internal/infra/persistence/database/migrations:/migrations
+    
+    command: ["-path", "/migrations", "-database", "postgres://health-checker:health-checker@postgres-health-checker:5432/health-checker?sslmode=disable", "up"]
+
 
 networks:
   health-checker-net:
