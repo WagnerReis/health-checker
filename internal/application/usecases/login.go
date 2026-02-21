@@ -6,33 +6,16 @@ import (
 	"health-checker/config"
 	"health-checker/internal/application/cryptography"
 	application "health-checker/internal/application/logger"
-	entities "health-checker/internal/domain/entity"
 	domainerrors "health-checker/internal/domain/errors"
 	"health-checker/internal/domain/repository"
-	valueobject "health-checker/internal/shared/value-object"
-
-	"github.com/google/uuid"
 )
 
-type SignUpCommand struct {
-	Name     string
+type LoginCommand struct {
 	Email    string
 	Password string
 }
 
-type User struct {
-	UserID uuid.UUID
-	Name   string
-	Email  string
-}
-
-type AuthOutput struct {
-	User         User
-	AccessToken  string
-	RefreshToken string
-}
-
-type SignUpUseCase struct {
+type LoginUseCase struct {
 	userRepository repository.UserRepository
 	hasher         cryptography.Hasher
 	tokenGenerator cryptography.TokenGenerator
@@ -40,8 +23,14 @@ type SignUpUseCase struct {
 	logger         application.Logger
 }
 
-func NewSignUpUseCase(userRepository repository.UserRepository, hasher cryptography.Hasher, tokenGenerator cryptography.TokenGenerator, config config.Config, logger application.Logger) *SignUpUseCase {
-	return &SignUpUseCase{
+func NewLoginUseCase(
+	userRepository repository.UserRepository,
+	hasher cryptography.Hasher,
+	tokenGenerator cryptography.TokenGenerator,
+	config config.Config,
+	logger application.Logger,
+) *LoginUseCase {
+	return &LoginUseCase{
 		userRepository: userRepository,
 		hasher:         hasher,
 		tokenGenerator: tokenGenerator,
@@ -50,38 +39,23 @@ func NewSignUpUseCase(userRepository repository.UserRepository, hasher cryptogra
 	}
 }
 
-func (u *SignUpUseCase) Execute(ctx context.Context, cmd SignUpCommand) (*AuthOutput, error) {
-	id := valueobject.NewID(uuid.Nil).Value()
-
+func (u *LoginUseCase) Execute(ctx context.Context, cmd LoginCommand) (*AuthOutput, error) {
 	user, err := u.userRepository.FindByEmail(ctx, cmd.Email)
-	if err != nil && !errors.Is(err, domainerrors.ErrUserNotFound) && !errors.Is(err, domainerrors.ErrUserNotFound) {
-		return nil, err
-	}
-	if user != nil {
-		return nil, domainerrors.ErrUserEmailAlreadyExists
-	}
-
-	hashedPassword, err := u.hasher.Hash(cmd.Password)
 	if err != nil {
+		if errors.Is(err, domainerrors.ErrUserNotFound) {
+			return nil, domainerrors.ErrUserNotFound
+		}
 		return nil, err
 	}
 
-	user, err = entities.NewUser(id, cmd.Name, cmd.Email, *hashedPassword, nil)
-	if err != nil {
-		return nil, err
+	if !u.hasher.Compare(cmd.Password, user.Password) {
+		return nil, domainerrors.ErrUserInvalidCredentials
 	}
-
-	err = u.userRepository.Create(ctx, user)
-	if err != nil {
-		return nil, err
-	}
-	u.logger.Info("User created successfully", application.Field{Key: "user_id", Value: user.ID.String()})
 
 	accessToken, err := u.tokenGenerator.Generate(user.ID, user.Email, u.config.AccessTokenSecret, u.config.AccessTokenExpiration)
 	if err != nil {
 		return nil, err
 	}
-
 	refreshToken, err := u.tokenGenerator.Generate(user.ID, user.Email, u.config.RefreshTokenSecret, u.config.RefreshTokenExpiration)
 	if err != nil {
 		return nil, err
@@ -92,6 +66,8 @@ func (u *SignUpUseCase) Execute(ctx context.Context, cmd SignUpCommand) (*AuthOu
 	if err != nil {
 		return nil, err
 	}
+
+	u.logger.Info("User logged in successfully", application.Field{Key: "user_id", Value: user.ID.String()})
 
 	return &AuthOutput{
 		User: User{

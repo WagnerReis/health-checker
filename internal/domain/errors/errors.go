@@ -9,4 +9,5 @@ var (
 	ErrUserPasswordRequired   = errors.New("password is required")
 	ErrUserPasswordTooShort   = errors.New("password must be at least 8 characters long")
 	ErrUserEmailAlreadyExists = errors.New("email already exists")
+	ErrUserInvalidCredentials = errors.New("invalid credentials")
 )

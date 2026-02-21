@@ -41,9 +41,10 @@ func main() {
 
 	// UseCases
 	signUpUseCase := usecases.NewSignUpUseCase(userRepository, hasher, tokenGenerator, *cfg, logger)
+	loginUseCase := usecases.NewLoginUseCase(userRepository, hasher, tokenGenerator, *cfg, logger)
 
 	// Handlers
-	authHandler := handlers.NewAuthHandler(*signUpUseCase)
+	authHandler := handlers.NewAuthHandler(*signUpUseCase, *loginUseCase)
 
 	// Router
 	appRouter := router.NewAppRouter(authHandler)

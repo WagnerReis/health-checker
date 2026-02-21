@@ -20,6 +20,7 @@ func (r *AppRouter) InitializeRoutes() *http.ServeMux {
 	router := http.NewServeMux()
 	router.HandleFunc("GET /health", GetHealth)
 	router.HandleFunc("POST /api/v1/auth/sign-up", r.authHandler.SignUp)
+	router.HandleFunc("POST /api/v1/auth/login", r.authHandler.Login)
 	return router
 }
 
