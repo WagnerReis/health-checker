@@ -38,7 +38,11 @@ func (r *UserRepositoryInMemory) Create(ctx context.Context, user *entities.User
 func (r *UserRepositoryInMemory) FindByID(ctx context.Context, id uuid.UUID) (*entities.User, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	return r.users[id], nil
+	user, ok := r.users[id]
+	if !ok {
+		return nil, domainerrors.ErrUserNotFound
+	}
+	return user, nil
 }
 
 func (r *UserRepositoryInMemory) FindByEmail(ctx context.Context, email string) (*entities.User, error) {

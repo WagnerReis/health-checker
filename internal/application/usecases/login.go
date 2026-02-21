@@ -6,8 +6,12 @@ import (
 	"health-checker/config"
 	"health-checker/internal/application/cryptography"
 	application "health-checker/internal/application/logger"
+	entities "health-checker/internal/domain/entity"
 	domainerrors "health-checker/internal/domain/errors"
 	"health-checker/internal/domain/repository"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 type LoginCommand struct {
@@ -16,26 +20,32 @@ type LoginCommand struct {
 }
 
 type LoginUseCase struct {
-	userRepository repository.UserRepository
-	hasher         cryptography.Hasher
-	tokenGenerator cryptography.TokenGenerator
-	config         config.Config
-	logger         application.Logger
+	userRepository         repository.UserRepository
+	refreshTokenRepository repository.RefreshTokenRepository
+	hasher                 cryptography.Hasher
+	tokenGenerator         cryptography.TokenGenerator
+	sha256Hash             cryptography.SHA256Hash
+	config                 config.Config
+	logger                 application.Logger
 }
 
 func NewLoginUseCase(
 	userRepository repository.UserRepository,
+	refreshTokenRepository repository.RefreshTokenRepository,
 	hasher cryptography.Hasher,
 	tokenGenerator cryptography.TokenGenerator,
+	sha256Hash cryptography.SHA256Hash,
 	config config.Config,
 	logger application.Logger,
 ) *LoginUseCase {
 	return &LoginUseCase{
-		userRepository: userRepository,
-		hasher:         hasher,
-		tokenGenerator: tokenGenerator,
-		config:         config,
-		logger:         logger,
+		userRepository:         userRepository,
+		refreshTokenRepository: refreshTokenRepository,
+		hasher:                 hasher,
+		tokenGenerator:         tokenGenerator,
+		sha256Hash:             sha256Hash,
+		config:                 config,
+		logger:                 logger,
 	}
 }
 
@@ -61,8 +71,9 @@ func (u *LoginUseCase) Execute(ctx context.Context, cmd LoginCommand) (*AuthOutp
 		return nil, err
 	}
 
-	user.RefreshToken = &refreshToken
-	err = u.userRepository.Update(ctx, user)
+	expiresAt := time.Now().Add(time.Duration(u.config.RefreshTokenExpiration) * time.Second)
+	refreshTokenHash := u.sha256Hash.Hash([]byte(refreshToken))
+	err = u.refreshTokenRepository.Create(ctx, entities.NewRefreshToken(uuid.Nil, user.ID, refreshTokenHash, expiresAt))
 	if err != nil {
 		return nil, err
 	}

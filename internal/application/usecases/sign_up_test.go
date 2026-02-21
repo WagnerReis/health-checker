@@ -28,7 +28,15 @@ func NewUseCase() *SignUpUseCase {
 		AccessTokenExpiration:  10,
 		RefreshTokenExpiration: 20,
 	}
-	return NewSignUpUseCase(repo, hasher, tokenGenerator, config, logger)
+	return NewSignUpUseCase(
+		repo,
+		inmemory.NewRefreshTokenRepositoryInMemory(),
+		hasher,
+		tokenGenerator,
+		criptography.NewFakeSHA256Hash(),
+		config,
+		logger,
+	)
 }
 
 func TestSignUpUseCase_Success(t *testing.T) {
@@ -40,7 +48,15 @@ func TestSignUpUseCase_Success(t *testing.T) {
 		AccessTokenExpiration:  10,
 		RefreshTokenExpiration: 20,
 	}
-	uc := NewSignUpUseCase(repo, hasher, tokenGenerator, config, logger)
+	uc := NewSignUpUseCase(
+		repo,
+		inmemory.NewRefreshTokenRepositoryInMemory(),
+		hasher,
+		tokenGenerator,
+		criptography.NewFakeSHA256Hash(),
+		config,
+		logger,
+	)
 
 	authOutput, err := uc.Execute(context.Background(), validCommand)
 	assert.NoError(t, err)
@@ -50,7 +66,6 @@ func TestSignUpUseCase_Success(t *testing.T) {
 	assert.NotNil(t, userFound)
 	assert.Equal(t, authOutput.User.Name, userFound.Name)
 	assert.Equal(t, authOutput.User.Email, userFound.Email)
-	assert.Equal(t, authOutput.RefreshToken, *userFound.RefreshToken)
 	assert.Equal(t, authOutput.AccessToken, "token")
 }
 
@@ -75,7 +90,15 @@ func TestSignUpUseCase_ErrorWhenHashFails(t *testing.T) {
 		AccessTokenExpiration:  10,
 		RefreshTokenExpiration: 20,
 	}
-	uc := NewSignUpUseCase(repo, hasher, tokenGenerator, config, fakelogger.NewFakeLogger())
+	uc := NewSignUpUseCase(
+		repo,
+		inmemory.NewRefreshTokenRepositoryInMemory(),
+		hasher,
+		tokenGenerator,
+		criptography.NewFakeSHA256Hash(),
+		config,
+		fakelogger.NewFakeLogger(),
+	)
 
 	_, err := uc.Execute(context.Background(), validCommand)
 
@@ -92,7 +115,15 @@ func TestSignUpUseCase_ErrorWhenCreateUserFails(t *testing.T) {
 		AccessTokenExpiration:  10,
 		RefreshTokenExpiration: 20,
 	}
-	uc := NewSignUpUseCase(repo, hasher, tokenGenerator, config, fakelogger.NewFakeLogger())
+	uc := NewSignUpUseCase(
+		repo,
+		inmemory.NewRefreshTokenRepositoryInMemory(),
+		hasher,
+		tokenGenerator,
+		criptography.NewFakeSHA256Hash(),
+		config,
+		fakelogger.NewFakeLogger(),
+	)
 
 	_, err := uc.Execute(context.Background(), validCommand)
 
@@ -124,7 +155,15 @@ func TestSignUpUseCase_ErrorWhenFindUserByEmailFails(t *testing.T) {
 		AccessTokenExpiration:  10,
 		RefreshTokenExpiration: 20,
 	}
-	uc := NewSignUpUseCase(repo, hasher, tokenGenerator, config, fakelogger.NewFakeLogger())
+	uc := NewSignUpUseCase(
+		repo,
+		inmemory.NewRefreshTokenRepositoryInMemory(),
+		hasher,
+		tokenGenerator,
+		criptography.NewFakeSHA256Hash(),
+		config,
+		fakelogger.NewFakeLogger(),
+	)
 
 	_, err := uc.Execute(context.Background(), validCommand)
 
@@ -139,7 +178,15 @@ func TestSignUpUseCase_ErrorWhenGenerateAccessTokenFails(t *testing.T) {
 		AccessTokenExpiration:  10,
 		RefreshTokenExpiration: 20,
 	}
-	uc := NewSignUpUseCase(repo, hasher, tokenGenerator, config, fakelogger.NewFakeLogger())
+	uc := NewSignUpUseCase(
+		repo,
+		inmemory.NewRefreshTokenRepositoryInMemory(),
+		hasher,
+		tokenGenerator,
+		criptography.NewFakeSHA256Hash(),
+		config,
+		fakelogger.NewFakeLogger(),
+	)
 	_, err := uc.Execute(context.Background(), validCommand)
 	assert.ErrorIs(t, err, tokenGenerator.ErrOnGenerate)
 }
@@ -155,21 +202,15 @@ func TestSignUpUseCase_ErrorWhenGenerateRefreshTokenFails(t *testing.T) {
 		AccessTokenExpiration:  10,
 		RefreshTokenExpiration: 20,
 	}
-	uc := NewSignUpUseCase(repo, hasher, tokenGenerator, config, fakelogger.NewFakeLogger())
+	uc := NewSignUpUseCase(
+		repo,
+		inmemory.NewRefreshTokenRepositoryInMemory(),
+		hasher,
+		tokenGenerator,
+		criptography.NewFakeSHA256Hash(),
+		config,
+		fakelogger.NewFakeLogger(),
+	)
 	_, err := uc.Execute(context.Background(), validCommand)
 	assert.ErrorIs(t, err, tokenGenerator.ErrOnGenerate)
-}
-
-func TestSignUpUseCase_ErrorWhenUpdateUserFails(t *testing.T) {
-	repo := inmemory.NewUserRepositoryInMemory()
-	repo.ErrOnUpdate = errors.New("update user failure")
-	hasher := criptography.NewFakeHasher()
-	tokenGenerator := criptography.NewFakeJWTGenerator()
-	config := config.Config{
-		AccessTokenExpiration:  10,
-		RefreshTokenExpiration: 20,
-	}
-	uc := NewSignUpUseCase(repo, hasher, tokenGenerator, config, fakelogger.NewFakeLogger())
-	_, err := uc.Execute(context.Background(), validCommand)
-	assert.ErrorIs(t, err, repo.ErrOnUpdate)
 }

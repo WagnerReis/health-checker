@@ -29,19 +29,25 @@ func setup() (*LoginUseCase, *inmemory.UserRepositoryInMemory) {
 		AccessTokenExpiration:  10,
 		RefreshTokenExpiration: 20,
 	}
-	return NewLoginUseCase(repo, hasher, tokenGenerator, config, fakelogger.NewFakeLogger()), repo
+	return NewLoginUseCase(
+		repo, inmemory.NewRefreshTokenRepositoryInMemory(),
+		hasher,
+		tokenGenerator,
+		criptography.NewFakeSHA256Hash(),
+		config,
+		fakelogger.NewFakeLogger(),
+	), repo
 }
 
 func TestLoginUseCase_Success(t *testing.T) {
 	uc, repo := setup()
 	repo.Create(context.Background(), &entities.User{
-		ID:           uuid.New(),
-		Name:         "John Doe",
-		Email:        "john.doe@example.com",
-		Password:     "password-hashed",
-		RefreshToken: nil,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		ID:        uuid.New(),
+		Name:      "John Doe",
+		Email:     "john.doe@example.com",
+		Password:  "password-hashed",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	})
 
 	authOutput, err := uc.Execute(context.Background(), validLoginCommand)
@@ -52,7 +58,6 @@ func TestLoginUseCase_Success(t *testing.T) {
 	assert.NotNil(t, userFound)
 	assert.Equal(t, authOutput.User.Name, userFound.Name)
 	assert.Equal(t, authOutput.User.Email, userFound.Email)
-	assert.Equal(t, authOutput.RefreshToken, *userFound.RefreshToken)
 	assert.Equal(t, authOutput.AccessToken, "token")
 }
 
@@ -70,32 +75,15 @@ func TestLoginUseCase_ErrorWhenFindUserByEmailFails(t *testing.T) {
 	assert.ErrorIs(t, err, repo.ErrOnFind)
 }
 
-func TestLoginUseCase_ErrorWhenUpdateUserFails(t *testing.T) {
-	uc, repo := setup()
-	repo.ErrOnUpdate = errors.New("update user failure")
-	repo.Create(context.Background(), &entities.User{
-		ID:           uuid.New(),
-		Name:         "John Doe",
-		Email:        "john.doe@example.com",
-		Password:     "password-hashed",
-		RefreshToken: nil,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-	})
-	_, err := uc.Execute(context.Background(), validLoginCommand)
-	assert.ErrorIs(t, err, repo.ErrOnUpdate)
-}
-
 func TestLoginUseCase_ErrorWhenInvalidCredentials(t *testing.T) {
 	uc, repo := setup()
 	repo.Create(context.Background(), &entities.User{
-		ID:           uuid.New(),
-		Name:         "John Doe",
-		Email:        "john.doe@example.com",
-		Password:     "password-hashed",
-		RefreshToken: nil,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		ID:        uuid.New(),
+		Name:      "John Doe",
+		Email:     "john.doe@example.com",
+		Password:  "password-hashed",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	})
 
 	_, err := uc.Execute(context.Background(), LoginCommand{Email: "john.doe@example.com", Password: "wrong-password"})
@@ -110,15 +98,21 @@ func TestLoginUseCase_ErrorWhenGenerateAccessTokenFails(t *testing.T) {
 		AccessTokenExpiration:  10,
 		RefreshTokenExpiration: 20,
 	}
-	uc := NewLoginUseCase(repo, hasher, tokenGenerator, config, fakelogger.NewFakeLogger())
+	uc := NewLoginUseCase(
+		repo, inmemory.NewRefreshTokenRepositoryInMemory(),
+		hasher,
+		tokenGenerator,
+		criptography.NewFakeSHA256Hash(),
+		config,
+		fakelogger.NewFakeLogger(),
+	)
 	repo.Create(context.Background(), &entities.User{
-		ID:           uuid.New(),
-		Name:         "John Doe",
-		Email:        "john.doe@example.com",
-		Password:     "password-hashed",
-		RefreshToken: nil,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		ID:        uuid.New(),
+		Name:      "John Doe",
+		Email:     "john.doe@example.com",
+		Password:  "password-hashed",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	})
 
 	_, err := uc.Execute(context.Background(), validLoginCommand)
@@ -136,15 +130,21 @@ func TestLoginUseCase_ErrorWhenGenerateRefreshTokenFails(t *testing.T) {
 		AccessTokenExpiration:  10,
 		RefreshTokenExpiration: 20,
 	}
-	uc := NewLoginUseCase(repo, hasher, tokenGenerator, config, fakelogger.NewFakeLogger())
+	uc := NewLoginUseCase(
+		repo, inmemory.NewRefreshTokenRepositoryInMemory(),
+		hasher,
+		tokenGenerator,
+		criptography.NewFakeSHA256Hash(),
+		config,
+		fakelogger.NewFakeLogger(),
+	)
 	repo.Create(context.Background(), &entities.User{
-		ID:           uuid.New(),
-		Name:         "John Doe",
-		Email:        "john.doe@example.com",
-		Password:     "password-hashed",
-		RefreshToken: nil,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		ID:        uuid.New(),
+		Name:      "John Doe",
+		Email:     "john.doe@example.com",
+		Password:  "password-hashed",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	})
 
 	_, err := uc.Execute(context.Background(), validLoginCommand)

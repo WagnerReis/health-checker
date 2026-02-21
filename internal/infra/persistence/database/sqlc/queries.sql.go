@@ -7,18 +7,19 @@ package sqlc
 
 import (
 	"context"
-	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
 
-const createUser = `-- name: CreateUser :exec
-INSERT INTO users (
+const createRefreshToken = `-- name: CreateRefreshToken :exec
+
+INSERT INTO refresh_tokens (
     id, 
-    name, 
-    email, 
-    password, 
-    refresh_token, 
+    user_id, 
+    token_hash,
+    expires_at, 
+    revoked, 
     created_at, 
     updated_at
 ) VALUES (
@@ -26,18 +27,53 @@ INSERT INTO users (
     $2,
     $3,
     $4,
-    $5,
+    false,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+)
+`
+
+type CreateRefreshTokenParams struct {
+	ID        interface{}
+	UserID    uuid.UUID
+	TokenHash string
+	ExpiresAt time.Time
+}
+
+// Refresh Token Queries
+func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) error {
+	_, err := q.db.ExecContext(ctx, createRefreshToken,
+		arg.ID,
+		arg.UserID,
+		arg.TokenHash,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
+const createUser = `-- name: CreateUser :exec
+INSERT INTO users (
+    id, 
+    name, 
+    email, 
+    password, 
+    created_at, 
+    updated_at
+) VALUES (
+    COALESCE($1, gen_random_uuid()),
+    $2,
+    $3,
+    $4,
     NOW(),
     NOW()
  )
 `
 
 type CreateUserParams struct {
-	ID           interface{}
-	Name         string
-	Email        string
-	Password     string
-	RefreshToken sql.NullString
+	ID       interface{}
+	Name     string
+	Email    string
+	Password string
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
@@ -46,13 +82,21 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 		arg.Name,
 		arg.Email,
 		arg.Password,
-		arg.RefreshToken,
 	)
 	return err
 }
 
+const deleteAllExpired = `-- name: DeleteAllExpired :exec
+DELETE FROM refresh_tokens WHERE expires_at < CURRENT_TIMESTAMP
+`
+
+func (q *Queries) DeleteAllExpired(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteAllExpired)
+	return err
+}
+
 const findByEmail = `-- name: FindByEmail :one
-SELECT id, name, email, password, refresh_token, created_at, updated_at FROM users WHERE email = $1
+SELECT id, name, email, password, created_at, updated_at FROM users WHERE email = $1
 `
 
 func (q *Queries) FindByEmail(ctx context.Context, email string) (User, error) {
@@ -63,7 +107,6 @@ func (q *Queries) FindByEmail(ctx context.Context, email string) (User, error) {
 		&i.Name,
 		&i.Email,
 		&i.Password,
-		&i.RefreshToken,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -71,7 +114,7 @@ func (q *Queries) FindByEmail(ctx context.Context, email string) (User, error) {
 }
 
 const findByID = `-- name: FindByID :one
-SELECT id, name, email, password, refresh_token, created_at, updated_at FROM users WHERE id = $1
+SELECT id, name, email, password, created_at, updated_at FROM users WHERE id = $1
 `
 
 func (q *Queries) FindByID(ctx context.Context, id uuid.UUID) (User, error) {
@@ -82,11 +125,56 @@ func (q *Queries) FindByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.Name,
 		&i.Email,
 		&i.Password,
-		&i.RefreshToken,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const findByTokenHash = `-- name: FindByTokenHash :one
+SELECT id, user_id, token_hash, expires_at, revoked, created_at, updated_at FROM refresh_tokens WHERE token_hash = $1
+`
+
+func (q *Queries) FindByTokenHash(ctx context.Context, tokenhash string) (RefreshToken, error) {
+	row := q.db.QueryRowContext(ctx, findByTokenHash, tokenhash)
+	var i RefreshToken
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.TokenHash,
+		&i.ExpiresAt,
+		&i.Revoked,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const revokeAllByUser = `-- name: RevokeAllByUser :exec
+UPDATE refresh_tokens SET 
+    revoked = true,
+    updated_at = CURRENT_TIMESTAMP
+WHERE user_id = $1
+`
+
+func (q *Queries) RevokeAllByUser(ctx context.Context, userid uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, revokeAllByUser, userid)
+	return err
+}
+
+const revokeRefreshToken = `-- name: RevokeRefreshToken :one
+UPDATE refresh_tokens SET 
+    revoked = true,
+    updated_at = CURRENT_TIMESTAMP
+WHERE token_hash = $1
+RETURNING 1
+`
+
+func (q *Queries) RevokeRefreshToken(ctx context.Context, tokenHash string) (int32, error) {
+	row := q.db.QueryRowContext(ctx, revokeRefreshToken, tokenHash)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const update = `-- name: Update :exec
@@ -94,17 +182,15 @@ UPDATE users SET
     name = $1,
     email = $2,
     password = $3,
-    refresh_token = $4,
     updated_at = NOW()
-WHERE id = $5
+WHERE id = $4
 `
 
 type UpdateParams struct {
-	Name         string
-	Email        string
-	Password     string
-	RefreshToken sql.NullString
-	ID           uuid.UUID
+	Name     string
+	Email    string
+	Password string
+	ID       uuid.UUID
 }
 
 func (q *Queries) Update(ctx context.Context, arg UpdateParams) error {
@@ -112,7 +198,6 @@ func (q *Queries) Update(ctx context.Context, arg UpdateParams) error {
 		arg.Name,
 		arg.Email,
 		arg.Password,
-		arg.RefreshToken,
 		arg.ID,
 	)
 	return err

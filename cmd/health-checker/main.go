@@ -30,6 +30,7 @@ func main() {
 
 	tokenGenerator := cryptography.NewJWTTokenGenerator()
 	hasher := cryptography.NewBcrypterHasher()
+	sha256Hash := cryptography.NewSHA256Hash()
 
 	db, err := dbutils.NewPool(context.Background())
 	if err != nil {
@@ -38,11 +39,12 @@ func main() {
 
 	// Repositories
 	userRepository := postgres.NewUserRepository(db)
+	refreshTokenRepository := postgres.NewRefreshTokenRepository(db)
 
 	// UseCases
-	signUpUseCase := usecases.NewSignUpUseCase(userRepository, hasher, tokenGenerator, *cfg, logger)
-	loginUseCase := usecases.NewLoginUseCase(userRepository, hasher, tokenGenerator, *cfg, logger)
-	logoutUseCase := usecases.NewLogoutUseCase(userRepository, logger)
+	signUpUseCase := usecases.NewSignUpUseCase(userRepository, refreshTokenRepository, hasher, tokenGenerator, sha256Hash, *cfg, logger)
+	loginUseCase := usecases.NewLoginUseCase(userRepository, refreshTokenRepository, hasher, tokenGenerator, sha256Hash, *cfg, logger)
+	logoutUseCase := usecases.NewLogoutUseCase(userRepository, refreshTokenRepository, sha256Hash, logger)
 
 	// Handlers
 	authHandler := handlers.NewAuthHandler(*signUpUseCase, *loginUseCase, *logoutUseCase)

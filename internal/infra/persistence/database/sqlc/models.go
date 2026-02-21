@@ -11,12 +11,21 @@ import (
 	"github.com/google/uuid"
 )
 
+type RefreshToken struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	TokenHash string
+	ExpiresAt time.Time
+	Revoked   sql.NullBool
+	CreatedAt time.Time
+	UpdatedAt sql.NullTime
+}
+
 type User struct {
-	ID           uuid.UUID
-	Name         string
-	Email        string
-	Password     string
-	RefreshToken sql.NullString
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID        uuid.UUID
+	Name      string
+	Email     string
+	Password  string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }

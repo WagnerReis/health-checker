@@ -42,7 +42,7 @@ type LoginRequest struct {
 }
 
 type LogoutRequest struct {
-	UserID uuid.UUID `json:"user_id" validate:"required"`
+	RefreshToken string `json:"refreshToken" validate:"required"`
 }
 
 func (h *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
@@ -85,7 +85,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 			helpers.WriteError(w, http.StatusUnauthorized, domainerrors.ErrUserInvalidCredentials.Error())
 			return
 		}
-		helpers.WriteError(w, http.StatusInternalServerError, fmt.Sprintf("failed to login: %v", err))
+		helpers.WriteError(w, http.StatusInternalServerError, domainerrors.ErrUserInvalidCredentials.Error())
 		return
 	}
 
@@ -93,16 +93,27 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	req, err := helpers.DecodeAndValidateRequest[LogoutRequest](w, r)
+	if err != nil {
+		helpers.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	userID, ok := r.Context().Value("userID").(uuid.UUID)
 	if !ok {
 		helpers.WriteError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
-	err := h.logoutUseCase.Execute(r.Context(), usecases.LogoutCommand{
-		UserID: userID,
+	err = h.logoutUseCase.Execute(r.Context(), usecases.LogoutCommand{
+		UserID:           userID,
+		RefreshTokenHash: req.RefreshToken,
 	})
 	if err != nil {
+		if errors.Is(err, domainerrors.ErrRefreshTokenNotFound) {
+			helpers.WriteError(w, http.StatusUnauthorized, domainerrors.ErrRefreshTokenNotFound.Error())
+			return
+		}
 		if errors.Is(err, domainerrors.ErrUserNotFound) {
 			helpers.WriteError(w, http.StatusNotFound, domainerrors.ErrUserNotFound.Error())
 			return
