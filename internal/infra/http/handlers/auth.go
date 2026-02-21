@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"health-checker/internal/application/usecases"
+	domainerrors "health-checker/internal/domain/errors"
 	"health-checker/internal/infra/http/helpers"
 	"health-checker/internal/infra/http/presenters"
 	"net/http"
@@ -37,6 +39,10 @@ func (h *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		Password: req.Password,
 	})
 	if err != nil {
+		if errors.Is(err, domainerrors.ErrUserEmailAlreadyExists) {
+			helpers.WriteError(w, http.StatusConflict, "email already exists")
+			return
+		}
 		helpers.WriteError(w, http.StatusInternalServerError, fmt.Sprintf("failed to sign up: %v", err))
 		return
 	}

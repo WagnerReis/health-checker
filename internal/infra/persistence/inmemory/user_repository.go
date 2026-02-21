@@ -6,7 +6,7 @@ import (
 	"health-checker/internal/domain/errors"
 	"sync"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 )
 
 type UserRepositoryInMemory struct {

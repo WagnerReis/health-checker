@@ -6,7 +6,7 @@ import (
 	domainerrors "health-checker/internal/domain/errors"
 	valueobjects "health-checker/internal/shared/value-object"
 
-	uuid "github.com/gofrs/uuid"
+	uuid "github.com/google/uuid"
 )
 
 type User struct {

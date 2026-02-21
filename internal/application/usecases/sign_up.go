@@ -11,7 +11,7 @@ import (
 	"health-checker/internal/domain/repository"
 	valueobject "health-checker/internal/shared/value-object"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 )
 
 type SignUpCommand struct {
@@ -54,49 +54,42 @@ func (u *SignUpUseCase) Execute(ctx context.Context, cmd SignUpCommand) (*SignUp
 	id := valueobject.NewID(uuid.Nil).Value()
 
 	user, err := u.userRepository.FindByEmail(ctx, cmd.Email)
-	if err != nil && !errors.Is(err, domainerrors.ErrUserNotFound) {
-		u.logger.Error("Failed to find user by email", application.Field{Key: "error", Value: err.Error()})
+	if err != nil && !errors.Is(err, domainerrors.ErrUserNotFound) && !errors.Is(err, domainerrors.ErrUserNotFound) {
 		return nil, err
 	}
 	if user != nil {
-		return nil, errors.New("email already exists")
+		return nil, domainerrors.ErrUserEmailAlreadyExists
 	}
 
 	hashedPassword, err := u.hasher.Hash(cmd.Password)
 	if err != nil {
-		u.logger.Error("Failed to hash password", application.Field{Key: "error", Value: err.Error()})
 		return nil, err
 	}
 
 	user, err = entities.NewUser(id, cmd.Name, cmd.Email, *hashedPassword, nil)
 	if err != nil {
-		u.logger.Error("Failed to create user entity", application.Field{Key: "error", Value: err.Error()})
 		return nil, err
 	}
 
 	err = u.userRepository.Create(ctx, user)
 	if err != nil {
-		u.logger.Error("Failed to create user", application.Field{Key: "error", Value: err.Error()})
 		return nil, err
 	}
 	u.logger.Info("User created successfully", application.Field{Key: "user_id", Value: user.ID.String()})
 
 	accessToken, err := u.tokenGenerator.Generate(user.ID, user.Email, u.config.AccessTokenSecret, u.config.AccessTokenExpiration)
 	if err != nil {
-		u.logger.Error("Failed to generate access token", application.Field{Key: "error", Value: err.Error()})
 		return nil, err
 	}
 
 	refreshToken, err := u.tokenGenerator.Generate(user.ID, user.Email, u.config.RefreshTokenSecret, u.config.RefreshTokenExpiration)
 	if err != nil {
-		u.logger.Error("Failed to generate refresh token", application.Field{Key: "error", Value: err.Error()})
 		return nil, err
 	}
 
 	user.RefreshToken = &refreshToken
 	err = u.userRepository.Update(ctx, user)
 	if err != nil {
-		u.logger.Error("Failed to update user", application.Field{Key: "error", Value: err.Error()})
 		return nil, err
 	}
 
