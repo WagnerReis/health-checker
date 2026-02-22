@@ -20,7 +20,6 @@ func TestUser_NewUser(t *testing.T) {
 	assert.Equal(t, "John Doe", user.Name)
 	assert.Equal(t, "john.doe@example.com", user.Email)
 	assert.Equal(t, "password", user.Password)
-	assert.Nil(t, user.RefreshToken)
 }
 
 func TestUser_NewUser_ErrorWhenEmailIsInvalid(t *testing.T) {
