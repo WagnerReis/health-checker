@@ -34,6 +34,9 @@ func (r *RefreshTokenRepository) Create(ctx context.Context, refreshToken *entit
 func (r *RefreshTokenRepository) FindByTokenHash(ctx context.Context, tokenHash string) (*entities.RefreshToken, error) {
 	refreshToken, err := r.queries.FindByTokenHash(ctx, tokenHash)
 	if err != nil {
+		if IsNoRowsError(err) {
+			return nil, domainerrors.ErrRefreshTokenNotFound
+		}
 		return nil, err
 	}
 	return &entities.RefreshToken{

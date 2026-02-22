@@ -14,4 +14,6 @@ var (
 
 	// Refresh Token Errors
 	ErrRefreshTokenNotFound = errors.New("refresh token not found")
+	ErrRefreshTokenRevoked  = errors.New("refresh token revoked")
+	ErrRefreshTokenExpired  = errors.New("refresh token expired")
 )

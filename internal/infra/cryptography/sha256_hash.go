@@ -12,5 +12,6 @@ func NewSHA256Hash() *SHA256Hash {
 }
 
 func (h *SHA256Hash) Hash(input []byte) string {
-	return hex.EncodeToString(sha256.New().Sum(input))
+	hash := sha256.Sum256(input)
+	return hex.EncodeToString(hash[:])
 }

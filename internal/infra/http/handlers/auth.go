@@ -13,20 +13,23 @@ import (
 )
 
 type AuthHandler struct {
-	signUpUseCase usecases.SignUpUseCase
-	loginUseCase  usecases.LoginUseCase
-	logoutUseCase usecases.LogoutUseCase
+	signUpUseCase  usecases.SignUpUseCase
+	loginUseCase   usecases.LoginUseCase
+	logoutUseCase  usecases.LogoutUseCase
+	refreshUseCase usecases.RefreshUseCase
 }
 
 func NewAuthHandler(
 	signUpUseCase usecases.SignUpUseCase,
 	loginUseCase usecases.LoginUseCase,
 	logoutUseCase usecases.LogoutUseCase,
+	refreshUseCase usecases.RefreshUseCase,
 ) *AuthHandler {
 	return &AuthHandler{
-		signUpUseCase: signUpUseCase,
-		loginUseCase:  loginUseCase,
-		logoutUseCase: logoutUseCase,
+		signUpUseCase:  signUpUseCase,
+		loginUseCase:   loginUseCase,
+		logoutUseCase:  logoutUseCase,
+		refreshUseCase: refreshUseCase,
 	}
 }
 
@@ -42,6 +45,10 @@ type LoginRequest struct {
 }
 
 type LogoutRequest struct {
+	RefreshToken string `json:"refreshToken" validate:"required"`
+}
+
+type RefreshRequest struct {
 	RefreshToken string `json:"refreshToken" validate:"required"`
 }
 
@@ -123,4 +130,37 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	helpers.WriteJSONResponse(w, http.StatusOK, map[string]string{"message": "Logged out successfully"})
+}
+
+func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
+	req, err := helpers.DecodeAndValidateRequest[RefreshRequest](w, r)
+	if err != nil {
+		helpers.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	authOutput, err := h.refreshUseCase.Execute(r.Context(), usecases.RefreshCommand{
+		RefreshToken: req.RefreshToken,
+	})
+	if err != nil {
+		switch err {
+		case domainerrors.ErrRefreshTokenNotFound:
+			helpers.WriteError(w, http.StatusUnauthorized, domainerrors.ErrRefreshTokenNotFound.Error())
+			return
+		case domainerrors.ErrRefreshTokenRevoked:
+			helpers.WriteError(w, http.StatusUnauthorized, domainerrors.ErrRefreshTokenRevoked.Error())
+			return
+		case domainerrors.ErrRefreshTokenExpired:
+			helpers.WriteError(w, http.StatusUnauthorized, domainerrors.ErrRefreshTokenExpired.Error())
+			return
+		case domainerrors.ErrUserNotFound:
+			helpers.WriteError(w, http.StatusNotFound, domainerrors.ErrUserNotFound.Error())
+			return
+		default:
+			helpers.WriteError(w, http.StatusInternalServerError, fmt.Sprintf("failed to refresh: %v", err))
+			return
+		}
+	}
+
+	helpers.WriteJSONResponse(w, http.StatusOK, presenters.AuthPresenter(*authOutput))
 }
