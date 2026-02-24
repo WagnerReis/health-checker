@@ -23,7 +23,7 @@ type CreateMonitorRequest struct {
 	Headers            map[string]string `json:"headers" validate:"omitempty,dive,keys,ascii,lowercase"`
 	Body               string            `json:"body" validate:"omitempty"`
 	Interval           int               `json:"interval" validate:"required,min=1"`
-	ExpectedStatusCode uint32            `json:"expected_status_code" validate:"omitempty,min=100,max=599"`
+	ExpectedStatusCode int32             `json:"expected_status_code" validate:"omitempty,min=100,max=599"`
 	Timeout            int               `json:"timeout" validate:"required,min=1"`
 }
 
@@ -56,5 +56,5 @@ func (h *MonitorHandler) CreateMonitor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	helpers.WriteJSONResponse(w, http.StatusCreated, "Monitor created successfully")
+	helpers.WriteJSONResponse(w, http.StatusCreated, map[string]string{"message": "Monitor created successfully"})
 }

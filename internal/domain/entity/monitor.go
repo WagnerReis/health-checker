@@ -34,7 +34,7 @@ type Monitor struct {
 	Headers            *map[string]string
 	Body               *string
 	Interval           time.Duration
-	ExpectedStatusCode *uint32
+	ExpectedStatusCode *int32
 	Timeout            *time.Duration
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
@@ -48,7 +48,7 @@ func NewMonitor(
 	headers *map[string]string,
 	body *string,
 	interval time.Duration,
-	expectedStatusCode *uint32,
+	expectedStatusCode *int32,
 	timeout *time.Duration,
 ) (*Monitor, error) {
 	if id == uuid.Nil {

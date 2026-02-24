@@ -7,10 +7,73 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
+
+const createMonitor = `-- name: CreateMonitor :exec
+
+INSERT INTO monitors (
+    id, 
+    user_id, 
+    name, 
+    url, 
+    method, 
+    headers, 
+    body, 
+    interval, 
+    expected_status_code,
+    timeout,
+    created_at, 
+    updated_at
+) VALUES (
+    COALESCE($1, gen_random_uuid()),
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    $7,
+    $8,
+    $9,
+    $10,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+)
+`
+
+type CreateMonitorParams struct {
+	ID                 interface{}
+	UserID             uuid.UUID
+	Name               string
+	Url                string
+	Method             string
+	Headers            pqtype.NullRawMessage
+	Body               sql.NullString
+	Interval           int32
+	ExpectedStatusCode sql.NullInt32
+	Timeout            int32
+}
+
+// Monitor Queries
+func (q *Queries) CreateMonitor(ctx context.Context, arg CreateMonitorParams) error {
+	_, err := q.db.ExecContext(ctx, createMonitor,
+		arg.ID,
+		arg.UserID,
+		arg.Name,
+		arg.Url,
+		arg.Method,
+		arg.Headers,
+		arg.Body,
+		arg.Interval,
+		arg.ExpectedStatusCode,
+		arg.Timeout,
+	)
+	return err
+}
 
 const createRefreshToken = `-- name: CreateRefreshToken :exec
 
