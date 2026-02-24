@@ -11,6 +11,7 @@ import (
 	"health-checker/internal/infra/http/handlers"
 	"health-checker/internal/infra/logger"
 	dbutils "health-checker/internal/infra/persistence/database"
+	repository "health-checker/internal/infra/persistence/inmemory"
 	"health-checker/internal/infra/persistence/postgres"
 	"log"
 	"net/http"
@@ -40,18 +41,24 @@ func main() {
 	// Repositories
 	userRepository := postgres.NewUserRepository(db)
 	refreshTokenRepository := postgres.NewRefreshTokenRepository(db)
+	monitorRepository := repository.NewMonitorRepositoryInMemory()
 
 	// UseCases
+	// Auth
 	signUpUseCase := usecases.NewSignUpUseCase(userRepository, refreshTokenRepository, hasher, tokenGenerator, sha256Hash, *cfg, logger)
 	loginUseCase := usecases.NewLoginUseCase(userRepository, refreshTokenRepository, hasher, tokenGenerator, sha256Hash, *cfg, logger)
 	logoutUseCase := usecases.NewLogoutUseCase(userRepository, refreshTokenRepository, sha256Hash, logger)
 	refreshUseCase := usecases.NewRefreshUseCase(userRepository, refreshTokenRepository, tokenGenerator, sha256Hash, *cfg, logger)
 
+	// Monitor
+	createMonitorUseCase := usecases.NewCreateMonitorUseCase(monitorRepository, logger)
+
 	// Handlers
 	authHandler := handlers.NewAuthHandler(*signUpUseCase, *loginUseCase, *logoutUseCase, *refreshUseCase)
+	monitorHandler := handlers.NewMonitorHandler(*createMonitorUseCase)
 
 	// Router
-	appRouter := router.NewAppRouter(authHandler)
+	appRouter := router.NewAppRouter(authHandler, monitorHandler)
 	router := appRouter.InitializeRoutes()
 
 	server := &http.Server{

@@ -16,4 +16,9 @@ var (
 	ErrRefreshTokenNotFound = errors.New("refresh token not found")
 	ErrRefreshTokenRevoked  = errors.New("refresh token revoked")
 	ErrRefreshTokenExpired  = errors.New("refresh token expired")
+
+	// Monitor Errors
+	ErrUserIDRequired   = errors.New("user ID is required")
+	ErrRequiredFields   = errors.New("required fields are missing")
+	ErrIntervalRequired = errors.New("interval is required")
 )
