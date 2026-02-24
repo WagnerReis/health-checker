@@ -9,7 +9,23 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
+
+type Monitor struct {
+	ID                 uuid.UUID
+	UserID             uuid.UUID
+	Name               string
+	Url                string
+	Method             string
+	Headers            pqtype.NullRawMessage
+	Body               sql.NullString
+	Interval           int32
+	ExpectedStatusCode sql.NullInt32
+	Timeout            int32
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+}
 
 type RefreshToken struct {
 	ID        uuid.UUID

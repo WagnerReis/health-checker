@@ -18,7 +18,7 @@ type CreateMonitorCommand struct {
 	Headers            map[string]string
 	Body               string
 	Interval           int
-	ExpectedStatusCode uint32
+	ExpectedStatusCode int32
 	Timeout            int
 }
 

@@ -11,7 +11,6 @@ import (
 	"health-checker/internal/infra/http/handlers"
 	"health-checker/internal/infra/logger"
 	dbutils "health-checker/internal/infra/persistence/database"
-	repository "health-checker/internal/infra/persistence/inmemory"
 	"health-checker/internal/infra/persistence/postgres"
 	"log"
 	"net/http"
@@ -41,7 +40,7 @@ func main() {
 	// Repositories
 	userRepository := postgres.NewUserRepository(db)
 	refreshTokenRepository := postgres.NewRefreshTokenRepository(db)
-	monitorRepository := repository.NewMonitorRepositoryInMemory()
+	monitorRepository := postgres.NewMonitorRepository(db)
 
 	// UseCases
 	// Auth

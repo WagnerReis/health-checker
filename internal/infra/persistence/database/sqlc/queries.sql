@@ -68,3 +68,34 @@ WHERE user_id = sqlc.arg(userID);
 
 -- name: DeleteAllExpired :exec
 DELETE FROM refresh_tokens WHERE expires_at < CURRENT_TIMESTAMP;
+
+-- Monitor Queries
+
+-- name: CreateMonitor :exec
+INSERT INTO monitors (
+    id, 
+    user_id, 
+    name, 
+    url, 
+    method, 
+    headers, 
+    body, 
+    interval, 
+    expected_status_code,
+    timeout,
+    created_at, 
+    updated_at
+) VALUES (
+    COALESCE(sqlc.narg(id), gen_random_uuid()),
+    sqlc.arg(user_id),
+    sqlc.arg(name),
+    sqlc.arg(url),
+    sqlc.arg(method),
+    sqlc.narg(headers),
+    sqlc.narg(body),
+    sqlc.arg(interval),
+    sqlc.narg(expected_status_code),
+    sqlc.arg(timeout),
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+);
