@@ -99,3 +99,11 @@ INSERT INTO monitors (
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
 );
+
+-- name: FindByUserID :many
+SELECT * FROM monitors
+WHERE user_id = sqlc.arg(user_id)
+AND status = COALESCE(NULLIF(sqlc.narg(status), ''), status)
+ORDER BY created_at DESC
+LIMIT sqlc.arg(page_limit)
+OFFSET sqlc.arg(page_offset);

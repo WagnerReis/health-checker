@@ -31,6 +31,7 @@ func (r *AppRouter) InitializeRoutes() *http.ServeMux {
 
 	// Monitor routes
 	router.Handle("POST /api/v1/monitors", middlewares.AuthMiddleware(http.HandlerFunc(r.monitorHandler.CreateMonitor)))
+	router.Handle("GET /api/v1/monitors", middlewares.AuthMiddleware(http.HandlerFunc(r.monitorHandler.GetMonitors)))
 	return router
 }
 

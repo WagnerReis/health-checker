@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS monitors (
     interval INT NOT NULL,
     expected_status_code INT,
     timeout INT NOT NULL,
+    status VARCHAR(255) NOT NULL DEFAULT 'ACTIVE',
+    deleted_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

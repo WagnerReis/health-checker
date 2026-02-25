@@ -213,6 +213,65 @@ func (q *Queries) FindByTokenHash(ctx context.Context, tokenhash string) (Refres
 	return i, err
 }
 
+const findByUserID = `-- name: FindByUserID :many
+SELECT id, user_id, name, url, method, headers, body, interval, expected_status_code, timeout, status, deleted_at, created_at, updated_at FROM monitors
+WHERE user_id = $1
+AND status = COALESCE(NULLIF($2, ''), status)
+ORDER BY created_at DESC
+LIMIT $4
+OFFSET $3
+`
+
+type FindByUserIDParams struct {
+	UserID     uuid.UUID
+	Status     interface{}
+	PageOffset int32
+	PageLimit  int32
+}
+
+func (q *Queries) FindByUserID(ctx context.Context, arg FindByUserIDParams) ([]Monitor, error) {
+	rows, err := q.db.QueryContext(ctx, findByUserID,
+		arg.UserID,
+		arg.Status,
+		arg.PageOffset,
+		arg.PageLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Monitor
+	for rows.Next() {
+		var i Monitor
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Name,
+			&i.Url,
+			&i.Method,
+			&i.Headers,
+			&i.Body,
+			&i.Interval,
+			&i.ExpectedStatusCode,
+			&i.Timeout,
+			&i.Status,
+			&i.DeletedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const revokeAllByUser = `-- name: RevokeAllByUser :exec
 UPDATE refresh_tokens SET 
     revoked = true,
