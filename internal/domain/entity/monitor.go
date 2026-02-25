@@ -16,6 +16,10 @@ const (
 	MonitorStatusDOWN MonitorStatus = "PAUSED"
 )
 
+func (s MonitorStatus) String() string {
+	return string(s)
+}
+
 type MonitorMethod string
 
 const (
@@ -73,6 +77,7 @@ func NewMonitor(
 		Body:               body,
 		Interval:           interval,
 		ExpectedStatusCode: expectedStatusCode,
+		Status:             MonitorStatusUP,
 		Timeout:            timeout,
 		CreatedAt:          time.Now(),
 		UpdatedAt:          time.Now(),

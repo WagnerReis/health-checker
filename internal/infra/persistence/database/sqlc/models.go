@@ -23,6 +23,8 @@ type Monitor struct {
 	Interval           int32
 	ExpectedStatusCode sql.NullInt32
 	Timeout            int32
+	Status             string
+	DeletedAt          sql.NullTime
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
 }

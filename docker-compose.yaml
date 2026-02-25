@@ -37,8 +37,9 @@ services:
       - POSTGRES_USER=health-checker
       - POSTGRES_PASSWORD=health-checker
       - POSTGRES_DB=health-checker
+      - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
-      - ./.docker/pg-data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
       - ./.docker:/docker-entrypoint-initdb.d/
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U health-checker"]
@@ -63,3 +64,6 @@ services:
 networks:
   health-checker-net:
     driver: bridge
+
+volumes:
+  postgres_data:
