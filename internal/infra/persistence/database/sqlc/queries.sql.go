@@ -14,6 +14,22 @@ import (
 	"github.com/sqlc-dev/pqtype"
 )
 
+const countByUserID = `-- name: CountByUserID :one
+SELECT COUNT(*) FROM monitors WHERE user_id = $1 AND status = COALESCE(NULLIF($2, ''), status)
+`
+
+type CountByUserIDParams struct {
+	UserID uuid.UUID
+	Status interface{}
+}
+
+func (q *Queries) CountByUserID(ctx context.Context, arg CountByUserIDParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countByUserID, arg.UserID, arg.Status)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createMonitor = `-- name: CreateMonitor :exec
 
 INSERT INTO monitors (
@@ -214,7 +230,10 @@ func (q *Queries) FindByTokenHash(ctx context.Context, tokenhash string) (Refres
 }
 
 const findByUserID = `-- name: FindByUserID :many
-SELECT id, user_id, name, url, method, headers, body, interval, expected_status_code, timeout, status, deleted_at, created_at, updated_at FROM monitors
+SELECT
+ id, user_id, name, url, method, headers, body, interval, expected_status_code, timeout, status, deleted_at, created_at, updated_at,
+ COUNT(*) OVER () AS total_count
+FROM monitors
 WHERE user_id = $1
 AND status = COALESCE(NULLIF($2, ''), status)
 ORDER BY created_at DESC
@@ -229,7 +248,25 @@ type FindByUserIDParams struct {
 	PageLimit  int32
 }
 
-func (q *Queries) FindByUserID(ctx context.Context, arg FindByUserIDParams) ([]Monitor, error) {
+type FindByUserIDRow struct {
+	ID                 uuid.UUID
+	UserID             uuid.UUID
+	Name               string
+	Url                string
+	Method             string
+	Headers            pqtype.NullRawMessage
+	Body               sql.NullString
+	Interval           int32
+	ExpectedStatusCode sql.NullInt32
+	Timeout            int32
+	Status             string
+	DeletedAt          sql.NullTime
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+	TotalCount         int64
+}
+
+func (q *Queries) FindByUserID(ctx context.Context, arg FindByUserIDParams) ([]FindByUserIDRow, error) {
 	rows, err := q.db.QueryContext(ctx, findByUserID,
 		arg.UserID,
 		arg.Status,
@@ -240,9 +277,9 @@ func (q *Queries) FindByUserID(ctx context.Context, arg FindByUserIDParams) ([]M
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Monitor
+	var items []FindByUserIDRow
 	for rows.Next() {
-		var i Monitor
+		var i FindByUserIDRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
@@ -258,6 +295,7 @@ func (q *Queries) FindByUserID(ctx context.Context, arg FindByUserIDParams) ([]M
 			&i.DeletedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.TotalCount,
 		); err != nil {
 			return nil, err
 		}

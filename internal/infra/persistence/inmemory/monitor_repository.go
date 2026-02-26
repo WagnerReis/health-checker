@@ -27,7 +27,7 @@ func (r *MonitorRepositoryInMemory) Create(ctx context.Context, monitor *entitie
 	return nil
 }
 
-func (r *MonitorRepositoryInMemory) FindByUserID(ctx context.Context, userID uuid.UUID, status entities.MonitorStatus) ([]*entities.Monitor, error) {
+func (r *MonitorRepositoryInMemory) FindByUserID(ctx context.Context, userID uuid.UUID, status entities.MonitorStatus, limit, offset int32) ([]*entities.Monitor, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	monitors := []*entities.Monitor{}
@@ -37,4 +37,21 @@ func (r *MonitorRepositoryInMemory) FindByUserID(ctx context.Context, userID uui
 		}
 	}
 	return monitors, nil
+}
+
+func (r *MonitorRepositoryInMemory) CountByUserID(ctx context.Context, userID uuid.UUID, status *entities.MonitorStatus) (int64, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	count := 0
+	for _, monitor := range r.monitors {
+		if monitor.UserID == userID {
+			if status != nil && monitor.Status == *status {
+				count++
+			}
+			if status == nil {
+				count++
+			}
+		}
+	}
+	return int64(count), nil
 }
