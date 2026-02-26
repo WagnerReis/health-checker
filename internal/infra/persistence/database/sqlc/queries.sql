@@ -101,10 +101,7 @@ INSERT INTO monitors (
 );
 
 -- name: FindByUserID :many
-SELECT
- *,
- COUNT(*) OVER () AS total_count
-FROM monitors
+SELECT * FROM monitors
 WHERE user_id = sqlc.arg(user_id)
 AND status = COALESCE(NULLIF(sqlc.narg(status), ''), status)
 ORDER BY created_at DESC
