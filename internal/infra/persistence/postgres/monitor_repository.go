@@ -89,3 +89,15 @@ func (r *MonitorRepository) FindByUserID(
 	}
 	return monitorsEntities, nil
 }
+
+func (r *MonitorRepository) CountByUserID(ctx context.Context, userID uuid.UUID, status *entities.MonitorStatus) (int64, error) {
+	statusString := strings.ToUpper(status.String())
+	count, err := r.queries.CountByUserID(ctx, sqlc.CountByUserIDParams{
+		UserID: userID,
+		Status: NullString(&statusString),
+	})
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}

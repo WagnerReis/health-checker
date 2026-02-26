@@ -16,6 +16,11 @@ type GetMonitorsCommand struct {
 	Offset int32
 }
 
+type GetMonitorsResponse struct {
+	Monitors []*entities.Monitor
+	Total    int64
+}
+
 type GetMonitorsUseCase struct {
 	monitorRepository repository.MonitorRepository
 	logger            application.Logger
@@ -25,11 +30,21 @@ func NewGetMonitorsUseCase(monitorRepository repository.MonitorRepository, logge
 	return &GetMonitorsUseCase{monitorRepository: monitorRepository, logger: logger}
 }
 
-func (u *GetMonitorsUseCase) Execute(ctx context.Context, cmd GetMonitorsCommand) ([]*entities.Monitor, error) {
+func (u *GetMonitorsUseCase) Execute(ctx context.Context, cmd GetMonitorsCommand) (*GetMonitorsResponse, error) {
 	monitors, err := u.monitorRepository.FindByUserID(ctx, cmd.UserID, &cmd.Status, cmd.Limit, cmd.Offset)
 	if err != nil {
 		u.logger.Error("Failed to get monitors", application.Field{Key: "error", Value: err.Error()})
 		return nil, err
 	}
-	return monitors, nil
+
+	total, err := u.monitorRepository.CountByUserID(ctx, cmd.UserID, &cmd.Status)
+	if err != nil {
+		u.logger.Error("Failed to count monitors", application.Field{Key: "error", Value: err.Error()})
+		return nil, err
+	}
+
+	return &GetMonitorsResponse{
+		Monitors: monitors,
+		Total:    total,
+	}, nil
 }

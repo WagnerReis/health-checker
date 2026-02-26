@@ -107,11 +107,13 @@ func (h *MonitorHandler) GetMonitors(w http.ResponseWriter, r *http.Request) {
 		Offset: offset,
 	}
 
-	monitors, err := h.getMonitorsUseCase.Execute(r.Context(), cmd)
+	monitorData, err := h.getMonitorsUseCase.Execute(r.Context(), cmd)
 	if err != nil {
 		helpers.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	helpers.WriteJSONResponse(w, http.StatusOK, monitors)
+	response := helpers.NewPaginatedResponse(monitorData.Monitors, monitorData.Total, int(limit), int(offset))
+
+	helpers.WriteJSONResponse(w, http.StatusOK, response)
 }
