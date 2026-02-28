@@ -25,10 +25,11 @@ type CreateMonitorCommand struct {
 type CreateMonitorUseCase struct {
 	monitorRepository repository.MonitorRepository
 	logger            application.Logger
+	monitorsCh        *chan *entities.Monitor
 }
 
-func NewCreateMonitorUseCase(monitorRepository repository.MonitorRepository, logger application.Logger) *CreateMonitorUseCase {
-	return &CreateMonitorUseCase{monitorRepository: monitorRepository, logger: logger}
+func NewCreateMonitorUseCase(monitorRepository repository.MonitorRepository, logger application.Logger, monitorsCh *chan *entities.Monitor) *CreateMonitorUseCase {
+	return &CreateMonitorUseCase{monitorRepository: monitorRepository, logger: logger, monitorsCh: monitorsCh}
 }
 
 func (u *CreateMonitorUseCase) Execute(ctx context.Context, cmd CreateMonitorCommand) error {
@@ -55,5 +56,6 @@ func (u *CreateMonitorUseCase) Execute(ctx context.Context, cmd CreateMonitorCom
 		return err
 	}
 	u.logger.Info("Monitor created successfully", application.Field{Key: "monitor_id", Value: monitor.ID.String()})
+	*u.monitorsCh <- monitor
 	return nil
 }

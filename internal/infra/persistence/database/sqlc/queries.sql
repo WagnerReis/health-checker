@@ -135,5 +135,5 @@ INSERT INTO health_checks (
     sqlc.arg(is_success),
     sqlc.narg(error_message),
     sqlc.arg(checked_at),
-    sqlc.arg(created_at)
+    NOW()
 );

@@ -48,7 +48,7 @@ INSERT INTO health_checks (
     $5,
     $6,
     $7,
-    $8
+    NOW()
 )
 `
 
@@ -60,7 +60,6 @@ type CreateHealthCheckParams struct {
 	IsSuccess      bool
 	ErrorMessage   sql.NullString
 	CheckedAt      time.Time
-	CreatedAt      time.Time
 }
 
 // -------------- Health Check Queries
@@ -73,7 +72,6 @@ func (q *Queries) CreateHealthCheck(ctx context.Context, arg CreateHealthCheckPa
 		arg.IsSuccess,
 		arg.ErrorMessage,
 		arg.CheckedAt,
-		arg.CreatedAt,
 	)
 	return err
 }
