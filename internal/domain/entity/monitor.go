@@ -28,6 +28,10 @@ const (
 	MonitorMethodHEAD MonitorMethod = "HEAD"
 )
 
+func (s MonitorMethod) String() string {
+	return string(s)
+}
+
 type Monitor struct {
 	ID                 uuid.UUID
 	UserID             uuid.UUID

@@ -12,6 +12,17 @@ import (
 	"github.com/sqlc-dev/pqtype"
 )
 
+type HealthCheck struct {
+	ID             uuid.UUID
+	MonitorID      uuid.UUID
+	StatusCode     sql.NullInt32
+	ResponseTimeMs int32
+	IsSuccess      bool
+	ErrorMessage   sql.NullString
+	CheckedAt      time.Time
+	CreatedAt      time.Time
+}
+
 type Monitor struct {
 	ID                 uuid.UUID
 	UserID             uuid.UUID

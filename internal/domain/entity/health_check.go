@@ -18,6 +18,7 @@ type HealthCheck struct {
 }
 
 func NewHealthCheck(monitorID uuid.UUID) *HealthCheck {
+	checkedAt := time.Now()
 	return &HealthCheck{
 		ID:             uuid.New(),
 		MonitorID:      monitorID,
@@ -25,7 +26,7 @@ func NewHealthCheck(monitorID uuid.UUID) *HealthCheck {
 		ResponseTimeMS: nil,
 		IsSuccess:      nil,
 		ErrorMessage:   nil,
-		CheckedAt:      nil,
+		CheckedAt:      &checkedAt,
 		CreatedAt:      time.Now(),
 	}
 }
@@ -40,4 +41,8 @@ func (h *HealthCheck) SetResponseTimeMS(responseTimeMS uint32) {
 
 func (h *HealthCheck) SetIsSuccess(isSuccess bool) {
 	h.IsSuccess = &isSuccess
+}
+
+func (h *HealthCheck) SetErrorMessage(errorMessage string) {
+	h.ErrorMessage = &errorMessage
 }

@@ -30,6 +30,54 @@ func (q *Queries) CountMonitorsByUserID(ctx context.Context, arg CountMonitorsBy
 	return count, err
 }
 
+const createHealthCheck = `-- name: CreateHealthCheck :exec
+INSERT INTO health_checks (
+    id,
+    monitor_id,
+    status_code,
+    response_time_ms,
+    is_success,
+    error_message,
+    checked_at,
+    created_at
+) VALUES (
+    COALESCE($1, gen_random_uuid()),
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    $7,
+    $8
+)
+`
+
+type CreateHealthCheckParams struct {
+	ID             interface{}
+	MonitorID      uuid.UUID
+	StatusCode     sql.NullInt32
+	ResponseTimeMs sql.NullInt32
+	IsSuccess      bool
+	ErrorMessage   sql.NullString
+	CheckedAt      time.Time
+	CreatedAt      time.Time
+}
+
+// -------------- Health Check Queries
+func (q *Queries) CreateHealthCheck(ctx context.Context, arg CreateHealthCheckParams) error {
+	_, err := q.db.ExecContext(ctx, createHealthCheck,
+		arg.ID,
+		arg.MonitorID,
+		arg.StatusCode,
+		arg.ResponseTimeMs,
+		arg.IsSuccess,
+		arg.ErrorMessage,
+		arg.CheckedAt,
+		arg.CreatedAt,
+	)
+	return err
+}
+
 const createMonitor = `-- name: CreateMonitor :exec
 
 INSERT INTO monitors (
@@ -289,7 +337,9 @@ func (q *Queries) FindMonitorsByUserID(ctx context.Context, arg FindMonitorsByUs
 }
 
 const getAllMonitors = `-- name: GetAllMonitors :many
-SELECT id, user_id, name, url, method, headers, body, interval, expected_status_code, timeout, status, deleted_at, created_at, updated_at FROM monitors ORDER BY created_at ASC
+SELECT id, user_id, name, url, method, headers, body, interval, expected_status_code, timeout, status, deleted_at, created_at, updated_at FROM monitors 
+WHERE status = 'ACTIVE'
+ORDER BY created_at ASC
 `
 
 func (q *Queries) GetAllMonitors(ctx context.Context) ([]Monitor, error) {

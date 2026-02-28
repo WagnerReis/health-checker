@@ -44,6 +44,7 @@ func main() {
 	userRepository := postgres.NewUserRepository(db)
 	refreshTokenRepository := postgres.NewRefreshTokenRepository(db)
 	monitorRepository := postgres.NewMonitorRepository(db)
+	healthCheckRepository := postgres.NewHealthCheckRepository(db)
 
 	// UseCases
 	// Auth
@@ -64,9 +65,9 @@ func main() {
 	appRouter := router.NewAppRouter(authHandler, monitorHandler)
 	router := appRouter.InitializeRoutes()
 
-	checkerService := services.NewCheckerService(monitorRepository, logger)
+	checkerService := services.NewCheckerService(healthCheckRepository, logger)
 
-	monitorsCh := make(chan entities.Monitor, 100)
+	monitorsCh := make(chan *entities.Monitor, 100)
 	pool := worker.NewWorkerPool(monitorsCh, *checkerService, uint32(cfg.MaxWorkers), logger)
 
 	pool.Start()
@@ -77,7 +78,7 @@ func main() {
 	}
 
 	for _, monitor := range monitors {
-		monitorsCh <- *monitor
+		monitorsCh <- monitor
 	}
 
 	server := &http.Server{
