@@ -46,6 +46,13 @@ func main() {
 	monitorRepository := postgres.NewMonitorRepository(db)
 	healthCheckRepository := postgres.NewHealthCheckRepository(db)
 
+	checkerService := services.NewCheckerService(healthCheckRepository, logger)
+
+	monitorsCh := make(chan *entities.Monitor, 100)
+	pool := worker.NewWorkerPool(monitorsCh, *checkerService, uint32(cfg.MaxWorkers), logger)
+
+	pool.Start()
+
 	// UseCases
 	// Auth
 	signUpUseCase := usecases.NewSignUpUseCase(userRepository, refreshTokenRepository, hasher, tokenGenerator, sha256Hash, *cfg, logger)
@@ -54,7 +61,7 @@ func main() {
 	refreshUseCase := usecases.NewRefreshUseCase(userRepository, refreshTokenRepository, tokenGenerator, sha256Hash, *cfg, logger)
 
 	// Monitor
-	createMonitorUseCase := usecases.NewCreateMonitorUseCase(monitorRepository, logger)
+	createMonitorUseCase := usecases.NewCreateMonitorUseCase(monitorRepository, logger, &monitorsCh)
 	getMonitorsUseCase := usecases.NewGetMonitorsUseCase(monitorRepository, logger)
 
 	// Handlers
@@ -64,13 +71,6 @@ func main() {
 	// Router
 	appRouter := router.NewAppRouter(authHandler, monitorHandler)
 	router := appRouter.InitializeRoutes()
-
-	checkerService := services.NewCheckerService(healthCheckRepository, logger)
-
-	monitorsCh := make(chan *entities.Monitor, 100)
-	pool := worker.NewWorkerPool(monitorsCh, *checkerService, uint32(cfg.MaxWorkers), logger)
-
-	pool.Start()
 
 	monitors, err := monitorRepository.GetAll(context.Background())
 	if err != nil {
