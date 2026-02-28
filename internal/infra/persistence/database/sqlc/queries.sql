@@ -112,4 +112,28 @@ OFFSET sqlc.arg(page_offset);
 SELECT COUNT(*) FROM monitors WHERE user_id = sqlc.arg(user_id) AND status = COALESCE(NULLIF(sqlc.narg(status), ''), status);
 
 -- name: GetAllMonitors :many
-SELECT * FROM monitors ORDER BY created_at ASC;
+SELECT * FROM monitors 
+WHERE status = 'ACTIVE'
+ORDER BY created_at ASC;
+
+---------------- Health Check Queries
+-- name: CreateHealthCheck :exec
+INSERT INTO health_checks (
+    id,
+    monitor_id,
+    status_code,
+    response_time_ms,
+    is_success,
+    error_message,
+    checked_at,
+    created_at
+) VALUES (
+    COALESCE(sqlc.narg(id), gen_random_uuid()),
+    sqlc.arg(monitor_id),
+    sqlc.arg(status_code),
+    sqlc.narg(response_time_ms),
+    sqlc.arg(is_success),
+    sqlc.narg(error_message),
+    sqlc.arg(checked_at),
+    sqlc.arg(created_at)
+);

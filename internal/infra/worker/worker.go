@@ -9,7 +9,7 @@ import (
 )
 
 type WorkerPool struct {
-	monitors       chan entities.Monitor
+	monitors       chan *entities.Monitor
 	checkerService services.CheckerService
 	maxWorkers     int32
 	wg             *sync.WaitGroup
@@ -17,7 +17,7 @@ type WorkerPool struct {
 }
 
 func NewWorkerPool(
-	monitors chan entities.Monitor,
+	monitors chan *entities.Monitor,
 	checkerService services.CheckerService,
 	maxWorkers uint32,
 	logger application.Logger,
@@ -37,7 +37,7 @@ func (wp *WorkerPool) Start() {
 		go func() {
 			defer wp.wg.Done()
 			for monitor := range wp.monitors {
-				err := wp.checkerService.Check(context.Background(), monitor.ID)
+				err := wp.checkerService.Check(context.Background(), monitor)
 				if err != nil {
 					wp.logger.Error("Error checking monitor", application.Field{Key: "error", Value: err.Error()})
 				}

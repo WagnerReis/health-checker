@@ -32,6 +32,16 @@ func NullInt32(i *int32) sql.NullInt32 {
 	}
 }
 
+func NullBool(b *bool) sql.NullBool {
+	if b == nil {
+		return sql.NullBool{}
+	}
+	return sql.NullBool{
+		Bool:  *b,
+		Valid: true,
+	}
+}
+
 func NullRawMessage(m *map[string]string) pqtype.NullRawMessage {
 	if m == nil {
 		return pqtype.NullRawMessage{}

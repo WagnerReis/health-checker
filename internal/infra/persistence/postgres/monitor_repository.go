@@ -109,8 +109,22 @@ func (r *MonitorRepository) GetAll(ctx context.Context) ([]*entities.Monitor, er
 	}
 	monitorsEntities := make([]*entities.Monitor, len(monitors))
 	for i, monitor := range monitors {
+		timeout := time.Duration(monitor.Timeout) * time.Second
+
 		monitorsEntities[i] = &entities.Monitor{
-			ID: monitor.ID,
+			ID:                 monitor.ID,
+			UserID:             monitor.UserID,
+			Name:               monitor.Name,
+			URL:                monitor.Url,
+			Method:             entities.MonitorMethod(monitor.Method),
+			Status:             entities.MonitorStatus(monitor.Status),
+			Body:               &monitor.Body.String,
+			Interval:           time.Duration(monitor.Interval) * time.Second,
+			ExpectedStatusCode: &monitor.ExpectedStatusCode.Int32,
+			Timeout:            &timeout,
+			CreatedAt:          monitor.CreatedAt,
+			UpdatedAt:          monitor.UpdatedAt,
+			DeletedAt:          &monitor.DeletedAt.Time,
 		}
 	}
 	return monitorsEntities, nil

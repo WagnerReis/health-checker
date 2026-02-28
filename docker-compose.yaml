@@ -1,5 +1,4 @@
 services:
-
   health-checker:
     container_name: health-checker
     hostname: health-checker
@@ -9,6 +8,9 @@ services:
       target: development
     volumes:
       - .:/app
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     environment:
       - PORT=3091
       - ENVIRONMENT=dev
@@ -24,7 +26,7 @@ services:
       - 3091:3091
     depends_on:
       - postgres-health-checker
-  
+
   postgres-health-checker:
     image: postgres:13
     hostname: postgres-health-checker
@@ -58,9 +60,15 @@ services:
       - health-checker-net
     volumes:
       - ./internal/infra/persistence/database/migrations:/migrations
-    
-    command: ["-path", "/migrations", "-database", "postgres://health-checker:health-checker@postgres-health-checker:5432/health-checker?sslmode=disable", "up"]
 
+    command:
+      [
+        "-path",
+        "/migrations",
+        "-database",
+        "postgres://health-checker:health-checker@postgres-health-checker:5432/health-checker?sslmode=disable",
+        "up",
+      ]
 
 networks:
   health-checker-net:
