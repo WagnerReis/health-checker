@@ -17,6 +17,7 @@ services:
       - REFRESH_TOKEN_SECRET=asdçalkdçlaskqoppiwkad
       - ACCESS_TOKEN_EXPIRATION=15
       - REFRESH_TOKEN_EXPIRATION=720
+      - MAX_WORKERS=10
     networks:
       - health-checker-net
     ports:

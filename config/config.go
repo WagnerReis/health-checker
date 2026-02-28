@@ -14,6 +14,7 @@ type Config struct {
 	RefreshTokenSecret     string
 	AccessTokenExpiration  int
 	RefreshTokenExpiration int
+	MaxWorkers             int
 }
 
 func getEnvOrThrow(key string, defaultValue string, required bool) string {
@@ -39,6 +40,10 @@ func LoadConfig() *Config {
 	if err != nil {
 		log.Fatalf("Invalid REFRESH_TOKEN_EXPIRATION: %v", err)
 	}
+	maxWorkers, err := strconv.Atoi(getEnvOrThrow("MAX_WORKERS", "10", true))
+	if err != nil {
+		log.Fatalf("Invalid MAX_WORKERS: %v", err)
+	}
 
 	cfgOnce.Do(func() {
 		cfg = &Config{
@@ -47,6 +52,7 @@ func LoadConfig() *Config {
 			RefreshTokenSecret:     getEnvOrThrow("REFRESH_TOKEN_SECRET", "", true),
 			AccessTokenExpiration:  accessTokenExpiration,
 			RefreshTokenExpiration: refreshTokenExpiration,
+			MaxWorkers:             maxWorkers,
 		}
 	})
 	return cfg

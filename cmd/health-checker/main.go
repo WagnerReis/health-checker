@@ -5,13 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"health-checker/config"
+	"health-checker/internal/application/services"
 	"health-checker/internal/application/usecases"
+	entities "health-checker/internal/domain/entity"
 	"health-checker/internal/infra/cryptography"
 	router "health-checker/internal/infra/http"
 	"health-checker/internal/infra/http/handlers"
 	"health-checker/internal/infra/logger"
 	dbutils "health-checker/internal/infra/persistence/database"
 	"health-checker/internal/infra/persistence/postgres"
+	"health-checker/internal/infra/worker"
 	"log"
 	"net/http"
 	"os"
@@ -61,6 +64,19 @@ func main() {
 	appRouter := router.NewAppRouter(authHandler, monitorHandler)
 	router := appRouter.InitializeRoutes()
 
+	checkerService := services.NewCheckerService(monitorRepository, logger)
+
+	monitorsCh := make(chan entities.Monitor, 100)
+	pool := worker.NewWorkerPool(monitorsCh, *checkerService, uint32(cfg.MaxWorkers), logger)
+
+	pool.Start()
+
+	// TODO: remover mock, buscar monitores do banco
+	monitors := make([]entities.Monitor, 0)
+	for _, m := range monitors {
+		monitorsCh <- m
+	}
+
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
 		Handler: router,
@@ -80,6 +96,8 @@ func main() {
 
 	ctx, shutdownRelease := context.WithTimeout(context.Background(), time.Second*10)
 	defer shutdownRelease()
+
+	pool.Shutdown()
 
 	if err := server.Shutdown(ctx); err != nil {
 		log.Fatalf("HTTP shutdown error: %v", err)
