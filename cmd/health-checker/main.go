@@ -71,10 +71,13 @@ func main() {
 
 	pool.Start()
 
-	// TODO: remover mock, buscar monitores do banco
-	monitors := make([]entities.Monitor, 0)
-	for _, m := range monitors {
-		monitorsCh <- m
+	monitors, err := monitorRepository.GetAll(context.Background())
+	if err != nil {
+		logger.Fatal(fmt.Sprintf("Error getting monitors: %v", err))
+	}
+
+	for _, monitor := range monitors {
+		monitorsCh <- *monitor
 	}
 
 	server := &http.Server{

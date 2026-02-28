@@ -47,7 +47,7 @@ func (r *MonitorRepository) FindByUserID(
 	offset int32,
 ) ([]*entities.Monitor, error) {
 	statusString := strings.ToUpper(status.String())
-	monitors, err := r.queries.FindByUserID(ctx, sqlc.FindByUserIDParams{
+	monitors, err := r.queries.FindMonitorsByUserID(ctx, sqlc.FindMonitorsByUserIDParams{
 		UserID:     userID,
 		Status:     NullString(&statusString),
 		PageLimit:  limit,
@@ -92,7 +92,7 @@ func (r *MonitorRepository) FindByUserID(
 
 func (r *MonitorRepository) CountByUserID(ctx context.Context, userID uuid.UUID, status *entities.MonitorStatus) (int64, error) {
 	statusString := strings.ToUpper(status.String())
-	count, err := r.queries.CountByUserID(ctx, sqlc.CountByUserIDParams{
+	count, err := r.queries.CountMonitorsByUserID(ctx, sqlc.CountMonitorsByUserIDParams{
 		UserID: userID,
 		Status: NullString(&statusString),
 	})
@@ -100,4 +100,18 @@ func (r *MonitorRepository) CountByUserID(ctx context.Context, userID uuid.UUID,
 		return 0, err
 	}
 	return count, nil
+}
+
+func (r *MonitorRepository) GetAll(ctx context.Context) ([]*entities.Monitor, error) {
+	monitors, err := r.queries.GetAllMonitors(ctx)
+	if err != nil {
+		return nil, err
+	}
+	monitorsEntities := make([]*entities.Monitor, len(monitors))
+	for i, monitor := range monitors {
+		monitorsEntities[i] = &entities.Monitor{
+			ID: monitor.ID,
+		}
+	}
+	return monitorsEntities, nil
 }

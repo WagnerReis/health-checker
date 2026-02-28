@@ -100,7 +100,7 @@ INSERT INTO monitors (
     CURRENT_TIMESTAMP
 );
 
--- name: FindByUserID :many
+-- name: FindMonitorsByUserID :many
 SELECT * FROM monitors
 WHERE user_id = sqlc.arg(user_id)
 AND status = COALESCE(NULLIF(sqlc.narg(status), ''), status)
@@ -108,5 +108,8 @@ ORDER BY created_at DESC
 LIMIT sqlc.arg(page_limit)
 OFFSET sqlc.arg(page_offset);
 
--- name: CountByUserID :one
+-- name: CountMonitorsByUserID :one
 SELECT COUNT(*) FROM monitors WHERE user_id = sqlc.arg(user_id) AND status = COALESCE(NULLIF(sqlc.narg(status), ''), status);
+
+-- name: GetAllMonitors :many
+SELECT * FROM monitors ORDER BY created_at ASC;

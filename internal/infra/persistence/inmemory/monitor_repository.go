@@ -55,3 +55,13 @@ func (r *MonitorRepositoryInMemory) CountByUserID(ctx context.Context, userID uu
 	}
 	return int64(count), nil
 }
+
+func (r *MonitorRepositoryInMemory) GetAll(ctx context.Context) ([]*entities.Monitor, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	monitors := make([]*entities.Monitor, len(r.monitors))
+	for _, m := range r.monitors {
+		monitors = append(monitors, m)
+	}
+	return monitors, nil
+}

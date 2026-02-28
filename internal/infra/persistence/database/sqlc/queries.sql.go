@@ -14,17 +14,17 @@ import (
 	"github.com/sqlc-dev/pqtype"
 )
 
-const countByUserID = `-- name: CountByUserID :one
+const countMonitorsByUserID = `-- name: CountMonitorsByUserID :one
 SELECT COUNT(*) FROM monitors WHERE user_id = $1 AND status = COALESCE(NULLIF($2, ''), status)
 `
 
-type CountByUserIDParams struct {
+type CountMonitorsByUserIDParams struct {
 	UserID uuid.UUID
 	Status interface{}
 }
 
-func (q *Queries) CountByUserID(ctx context.Context, arg CountByUserIDParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countByUserID, arg.UserID, arg.Status)
+func (q *Queries) CountMonitorsByUserID(ctx context.Context, arg CountMonitorsByUserIDParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countMonitorsByUserID, arg.UserID, arg.Status)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -229,11 +229,8 @@ func (q *Queries) FindByTokenHash(ctx context.Context, tokenhash string) (Refres
 	return i, err
 }
 
-const findByUserID = `-- name: FindByUserID :many
-SELECT
- id, user_id, name, url, method, headers, body, interval, expected_status_code, timeout, status, deleted_at, created_at, updated_at,
- COUNT(*) OVER () AS total_count
-FROM monitors
+const findMonitorsByUserID = `-- name: FindMonitorsByUserID :many
+SELECT id, user_id, name, url, method, headers, body, interval, expected_status_code, timeout, status, deleted_at, created_at, updated_at FROM monitors
 WHERE user_id = $1
 AND status = COALESCE(NULLIF($2, ''), status)
 ORDER BY created_at DESC
@@ -241,33 +238,15 @@ LIMIT $4
 OFFSET $3
 `
 
-type FindByUserIDParams struct {
+type FindMonitorsByUserIDParams struct {
 	UserID     uuid.UUID
 	Status     interface{}
 	PageOffset int32
 	PageLimit  int32
 }
 
-type FindByUserIDRow struct {
-	ID                 uuid.UUID
-	UserID             uuid.UUID
-	Name               string
-	Url                string
-	Method             string
-	Headers            pqtype.NullRawMessage
-	Body               sql.NullString
-	Interval           int32
-	ExpectedStatusCode sql.NullInt32
-	Timeout            int32
-	Status             string
-	DeletedAt          sql.NullTime
-	CreatedAt          time.Time
-	UpdatedAt          time.Time
-	TotalCount         int64
-}
-
-func (q *Queries) FindByUserID(ctx context.Context, arg FindByUserIDParams) ([]FindByUserIDRow, error) {
-	rows, err := q.db.QueryContext(ctx, findByUserID,
+func (q *Queries) FindMonitorsByUserID(ctx context.Context, arg FindMonitorsByUserIDParams) ([]Monitor, error) {
+	rows, err := q.db.QueryContext(ctx, findMonitorsByUserID,
 		arg.UserID,
 		arg.Status,
 		arg.PageOffset,
@@ -277,9 +256,9 @@ func (q *Queries) FindByUserID(ctx context.Context, arg FindByUserIDParams) ([]F
 		return nil, err
 	}
 	defer rows.Close()
-	var items []FindByUserIDRow
+	var items []Monitor
 	for rows.Next() {
-		var i FindByUserIDRow
+		var i Monitor
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
@@ -295,7 +274,48 @@ func (q *Queries) FindByUserID(ctx context.Context, arg FindByUserIDParams) ([]F
 			&i.DeletedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.TotalCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllMonitors = `-- name: GetAllMonitors :many
+SELECT id, user_id, name, url, method, headers, body, interval, expected_status_code, timeout, status, deleted_at, created_at, updated_at FROM monitors ORDER BY created_at ASC
+`
+
+func (q *Queries) GetAllMonitors(ctx context.Context) ([]Monitor, error) {
+	rows, err := q.db.QueryContext(ctx, getAllMonitors)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Monitor
+	for rows.Next() {
+		var i Monitor
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Name,
+			&i.Url,
+			&i.Method,
+			&i.Headers,
+			&i.Body,
+			&i.Interval,
+			&i.ExpectedStatusCode,
+			&i.Timeout,
+			&i.Status,
+			&i.DeletedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
