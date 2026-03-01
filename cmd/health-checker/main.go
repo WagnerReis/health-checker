@@ -75,10 +75,11 @@ func main() {
 	// Monitor
 	createMonitorUseCase := usecases.NewCreateMonitorUseCase(monitorRepository, logger, monitorRegister)
 	getMonitorsUseCase := usecases.NewGetMonitorsUseCase(monitorRepository, logger)
+	toggleMonitorUseCase := usecases.NewToggleMonitorUseCase(monitorRepository, monitorRegister, logger)
 
 	// Handlers
 	authHandler := handlers.NewAuthHandler(*signUpUseCase, *loginUseCase, *logoutUseCase, *refreshUseCase)
-	monitorHandler := handlers.NewMonitorHandler(*createMonitorUseCase, *getMonitorsUseCase)
+	monitorHandler := handlers.NewMonitorHandler(*createMonitorUseCase, *getMonitorsUseCase, *toggleMonitorUseCase)
 
 	// Router
 	appRouter := router.NewAppRouter(authHandler, monitorHandler)

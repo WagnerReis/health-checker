@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	entities "health-checker/internal/domain/entity"
+	domainerrors "health-checker/internal/domain/errors"
 	"sync"
 
 	"github.com/google/uuid"
@@ -64,4 +65,21 @@ func (r *MonitorRepositoryInMemory) GetAll(ctx context.Context) ([]*entities.Mon
 		monitors = append(monitors, m)
 	}
 	return monitors, nil
+}
+
+func (r *MonitorRepositoryInMemory) FindByID(ctx context.Context, id uuid.UUID) (*entities.Monitor, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	monitor, ok := r.monitors[id]
+	if !ok {
+		return nil, domainerrors.ErrMonitorNotFound
+	}
+	return monitor, nil
+}
+
+func (r *MonitorRepositoryInMemory) Update(ctx context.Context, monitor *entities.Monitor) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.monitors[monitor.ID] = monitor
+	return nil
 }

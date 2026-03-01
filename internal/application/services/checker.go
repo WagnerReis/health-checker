@@ -32,6 +32,10 @@ func (s *CheckerService) Check(ctx context.Context, monitor *entities.Monitor) e
 		case <-ctx.Done():
 			return errors.New("context canceled")
 		case <-ticker.C:
+			if monitor.Status == entities.MonitorStatusDOWN {
+				continue
+			}
+
 			healthCheck := entities.NewHealthCheck(monitor.ID)
 
 			var timeout time.Duration

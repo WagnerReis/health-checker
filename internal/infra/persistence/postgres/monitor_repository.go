@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	entities "health-checker/internal/domain/entity"
+	domainerrors "health-checker/internal/domain/errors"
 	"health-checker/internal/infra/persistence/database/sqlc"
 	"strings"
 	"time"
@@ -128,4 +129,49 @@ func (r *MonitorRepository) GetAll(ctx context.Context) ([]*entities.Monitor, er
 		}
 	}
 	return monitorsEntities, nil
+}
+
+func (r *MonitorRepository) FindByID(ctx context.Context, id uuid.UUID) (*entities.Monitor, error) {
+	monitor, err := r.queries.FindMonitorByID(ctx, id)
+	if err != nil {
+		if IsNoRowsError(err) {
+			return nil, domainerrors.ErrMonitorNotFound
+		}
+		return nil, err
+	}
+	timeout := time.Duration(monitor.Timeout) * time.Second
+	return &entities.Monitor{
+		ID:                 monitor.ID,
+		UserID:             monitor.UserID,
+		Name:               monitor.Name,
+		URL:                monitor.Url,
+		Method:             entities.MonitorMethod(monitor.Method),
+		Status:             entities.MonitorStatus(monitor.Status),
+		Body:               &monitor.Body.String,
+		Interval:           time.Duration(monitor.Interval) * time.Second,
+		ExpectedStatusCode: &monitor.ExpectedStatusCode.Int32,
+		Timeout:            &timeout,
+		CreatedAt:          monitor.CreatedAt,
+		UpdatedAt:          monitor.UpdatedAt,
+		DeletedAt:          &monitor.DeletedAt.Time,
+	}, nil
+}
+
+func (r *MonitorRepository) Update(ctx context.Context, monitor *entities.Monitor) error {
+	err := r.queries.UpdateMonitor(ctx, sqlc.UpdateMonitorParams{
+		ID:                 monitor.ID,
+		Status:             string(monitor.Status),
+		Name:               monitor.Name,
+		Url:                monitor.URL,
+		Method:             string(monitor.Method),
+		Headers:            NullRawMessage(monitor.Headers),
+		Body:               NullString(monitor.Body),
+		Interval:           int32(monitor.Interval.Seconds()),
+		ExpectedStatusCode: NullInt32(monitor.ExpectedStatusCode),
+		Timeout:            int32(monitor.Timeout.Seconds()),
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }

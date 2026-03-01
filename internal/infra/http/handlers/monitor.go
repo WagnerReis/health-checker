@@ -13,15 +13,18 @@ import (
 type MonitorHandler struct {
 	createMonitorUseCase usecases.CreateMonitorUseCase
 	getMonitorsUseCase   usecases.GetMonitorsUseCase
+	toggleMonitorUseCase usecases.ToggleMonitorUseCase
 }
 
 func NewMonitorHandler(
 	createMonitorUseCase usecases.CreateMonitorUseCase,
 	getMonitorsUseCase usecases.GetMonitorsUseCase,
+	toggleMonitorUseCase usecases.ToggleMonitorUseCase,
 ) *MonitorHandler {
 	return &MonitorHandler{
 		createMonitorUseCase: createMonitorUseCase,
 		getMonitorsUseCase:   getMonitorsUseCase,
+		toggleMonitorUseCase: toggleMonitorUseCase,
 	}
 }
 
@@ -116,4 +119,20 @@ func (h *MonitorHandler) GetMonitors(w http.ResponseWriter, r *http.Request) {
 	response := helpers.NewPaginatedResponse(monitorData.Monitors, monitorData.Total, int(limit), int(offset))
 
 	helpers.WriteJSONResponse(w, http.StatusOK, response)
+}
+
+func (h *MonitorHandler) ToggleMonitor(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		helpers.WriteError(w, http.StatusBadRequest, "Monitor ID is required")
+		return
+	}
+
+	err := h.toggleMonitorUseCase.Execute(r.Context(), uuid.MustParse(id))
+	if err != nil {
+		helpers.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	helpers.WriteJSONResponse(w, http.StatusOK, map[string]string{"message": "Monitor toggled successfully"})
 }

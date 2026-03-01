@@ -275,6 +275,32 @@ func (q *Queries) FindByTokenHash(ctx context.Context, tokenhash string) (Refres
 	return i, err
 }
 
+const findMonitorByID = `-- name: FindMonitorByID :one
+SELECT id, user_id, name, url, method, headers, body, interval, expected_status_code, timeout, status, deleted_at, created_at, updated_at FROM monitors WHERE id = $1
+`
+
+func (q *Queries) FindMonitorByID(ctx context.Context, id uuid.UUID) (Monitor, error) {
+	row := q.db.QueryRowContext(ctx, findMonitorByID, id)
+	var i Monitor
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.Url,
+		&i.Method,
+		&i.Headers,
+		&i.Body,
+		&i.Interval,
+		&i.ExpectedStatusCode,
+		&i.Timeout,
+		&i.Status,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const findMonitorsByUserID = `-- name: FindMonitorsByUserID :many
 SELECT id, user_id, name, url, method, headers, body, interval, expected_status_code, timeout, status, deleted_at, created_at, updated_at FROM monitors
 WHERE user_id = $1
@@ -336,7 +362,6 @@ func (q *Queries) FindMonitorsByUserID(ctx context.Context, arg FindMonitorsByUs
 
 const getAllMonitors = `-- name: GetAllMonitors :many
 SELECT id, user_id, name, url, method, headers, body, interval, expected_status_code, timeout, status, deleted_at, created_at, updated_at FROM monitors 
-WHERE status = 'ACTIVE'
 ORDER BY created_at ASC
 `
 
@@ -426,6 +451,50 @@ func (q *Queries) Update(ctx context.Context, arg UpdateParams) error {
 		arg.Name,
 		arg.Email,
 		arg.Password,
+		arg.ID,
+	)
+	return err
+}
+
+const updateMonitor = `-- name: UpdateMonitor :exec
+UPDATE monitors SET
+    status = $1,
+    name = $2,
+    url = $3,
+    method = $4,
+    headers = $5,
+    body = $6,
+    interval = $7,
+    expected_status_code = $8,
+    timeout = $9,
+    updated_at = NOW()
+WHERE id = $10
+`
+
+type UpdateMonitorParams struct {
+	Status             string
+	Name               string
+	Url                string
+	Method             string
+	Headers            pqtype.NullRawMessage
+	Body               sql.NullString
+	Interval           int32
+	ExpectedStatusCode sql.NullInt32
+	Timeout            int32
+	ID                 uuid.UUID
+}
+
+func (q *Queries) UpdateMonitor(ctx context.Context, arg UpdateMonitorParams) error {
+	_, err := q.db.ExecContext(ctx, updateMonitor,
+		arg.Status,
+		arg.Name,
+		arg.Url,
+		arg.Method,
+		arg.Headers,
+		arg.Body,
+		arg.Interval,
+		arg.ExpectedStatusCode,
+		arg.Timeout,
 		arg.ID,
 	)
 	return err

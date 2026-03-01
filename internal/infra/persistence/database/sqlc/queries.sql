@@ -100,6 +100,20 @@ INSERT INTO monitors (
     CURRENT_TIMESTAMP
 );
 
+-- name: UpdateMonitor :exec
+UPDATE monitors SET
+    status = sqlc.arg(status),
+    name = sqlc.arg(name),
+    url = sqlc.arg(url),
+    method = sqlc.arg(method),
+    headers = sqlc.narg(headers),
+    body = sqlc.narg(body),
+    interval = sqlc.arg(interval),
+    expected_status_code = sqlc.narg(expected_status_code),
+    timeout = sqlc.arg(timeout),
+    updated_at = NOW()
+WHERE id = sqlc.arg(id);
+
 -- name: FindMonitorsByUserID :many
 SELECT * FROM monitors
 WHERE user_id = sqlc.arg(user_id)
@@ -113,8 +127,10 @@ SELECT COUNT(*) FROM monitors WHERE user_id = sqlc.arg(user_id) AND status = COA
 
 -- name: GetAllMonitors :many
 SELECT * FROM monitors 
-WHERE status = 'ACTIVE'
 ORDER BY created_at ASC;
+
+-- name: FindMonitorByID :one
+SELECT * FROM monitors WHERE id = sqlc.arg(id);
 
 ---------------- Health Check Queries
 -- name: CreateHealthCheck :exec

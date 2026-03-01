@@ -13,6 +13,7 @@ type WorkerPool struct {
 	monitorRegister *register.MonitorRegister
 	checkerService  services.CheckerService
 	maxWorkers      int32
+	jobs            chan *entities.Monitor
 	wg              *sync.WaitGroup
 	logger          application.Logger
 }
@@ -27,6 +28,7 @@ func NewWorkerPool(
 		monitorRegister: monitorRegister,
 		checkerService:  checkerService,
 		maxWorkers:      int32(maxWorkers),
+		jobs:            make(chan *entities.Monitor),
 		wg:              &sync.WaitGroup{},
 		logger:          logger,
 	}
@@ -37,9 +39,7 @@ func (wp *WorkerPool) Start() {
 		wp.wg.Add(1)
 		go func() {
 			defer wp.wg.Done()
-			wp.monitorRegister.Monitors.Range(func(key, value any) bool {
-				monitor := value.(*entities.Monitor)
-
+			for monitor := range wp.jobs {
 				err := wp.checkerService.Check(context.Background(), monitor)
 				if err != nil {
 					wp.logger.Error("Error checking monitor", application.Field{Key: "error", Value: err.Error()})
@@ -48,11 +48,19 @@ func (wp *WorkerPool) Start() {
 				wp.logger.Info("Monitor started",
 					application.Field{Key: "monitor_id", Value: monitor.ID.String()},
 				)
-
-				return true
-			})
+			}
 		}()
 	}
+
+	go func() {
+		wp.monitorRegister.Monitors.Range(func(_, value any) bool {
+			monitor := value.(*entities.Monitor)
+			wp.jobs <- monitor
+			return true
+		})
+
+		close(wp.jobs)
+	}()
 }
 
 func (wp *WorkerPool) Shutdown() {
