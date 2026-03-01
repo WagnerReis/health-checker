@@ -5,6 +5,7 @@ import (
 	application "health-checker/internal/application/logger"
 	entities "health-checker/internal/domain/entity"
 	"health-checker/internal/domain/repository"
+	register "health-checker/internal/infra/regiter"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,11 +26,15 @@ type CreateMonitorCommand struct {
 type CreateMonitorUseCase struct {
 	monitorRepository repository.MonitorRepository
 	logger            application.Logger
-	monitorsCh        *chan *entities.Monitor
+	monitorRegister   *register.MonitorRegister
 }
 
-func NewCreateMonitorUseCase(monitorRepository repository.MonitorRepository, logger application.Logger, monitorsCh *chan *entities.Monitor) *CreateMonitorUseCase {
-	return &CreateMonitorUseCase{monitorRepository: monitorRepository, logger: logger, monitorsCh: monitorsCh}
+func NewCreateMonitorUseCase(monitorRepository repository.MonitorRepository, logger application.Logger, monitorRegister *register.MonitorRegister) *CreateMonitorUseCase {
+	return &CreateMonitorUseCase{
+		monitorRepository: monitorRepository,
+		logger:            logger,
+		monitorRegister:   monitorRegister,
+	}
 }
 
 func (u *CreateMonitorUseCase) Execute(ctx context.Context, cmd CreateMonitorCommand) error {
@@ -56,6 +61,10 @@ func (u *CreateMonitorUseCase) Execute(ctx context.Context, cmd CreateMonitorCom
 		return err
 	}
 	u.logger.Info("Monitor created successfully", application.Field{Key: "monitor_id", Value: monitor.ID.String()})
-	*u.monitorsCh <- monitor
+	err = u.monitorRegister.Register(monitor)
+	if err != nil {
+		u.logger.Error("Failed to register monitor", application.Field{Key: "error", Value: err.Error()})
+		return err
+	}
 	return nil
 }

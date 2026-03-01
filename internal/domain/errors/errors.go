@@ -18,7 +18,9 @@ var (
 	ErrRefreshTokenExpired  = errors.New("refresh token expired")
 
 	// Monitor Errors
-	ErrUserIDRequired   = errors.New("user ID is required")
-	ErrRequiredFields   = errors.New("required fields are missing")
-	ErrIntervalRequired = errors.New("interval is required")
+	ErrUserIDRequired           = errors.New("user ID is required")
+	ErrRequiredFields           = errors.New("required fields are missing")
+	ErrIntervalRequired         = errors.New("interval is required")
+	ErrMonitorNotFound          = errors.New("monitor not found")
+	ErrMonitorAlreadyRegistered = errors.New("monitor already registered")
 )

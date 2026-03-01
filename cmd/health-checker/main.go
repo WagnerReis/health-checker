@@ -7,13 +7,13 @@ import (
 	"health-checker/config"
 	"health-checker/internal/application/services"
 	"health-checker/internal/application/usecases"
-	entities "health-checker/internal/domain/entity"
 	"health-checker/internal/infra/cryptography"
 	router "health-checker/internal/infra/http"
 	"health-checker/internal/infra/http/handlers"
 	"health-checker/internal/infra/logger"
 	dbutils "health-checker/internal/infra/persistence/database"
 	"health-checker/internal/infra/persistence/postgres"
+	register "health-checker/internal/infra/regiter"
 	"health-checker/internal/infra/worker"
 	"log"
 	"net/http"
@@ -47,9 +47,21 @@ func main() {
 	healthCheckRepository := postgres.NewHealthCheckRepository(db)
 
 	checkerService := services.NewCheckerService(healthCheckRepository, logger)
+	monitorRegister := register.NewMonitorRegister()
 
-	monitorsCh := make(chan *entities.Monitor, 100)
-	pool := worker.NewWorkerPool(monitorsCh, *checkerService, uint32(cfg.MaxWorkers), logger)
+	pool := worker.NewWorkerPool(monitorRegister, *checkerService, uint32(cfg.MaxWorkers), logger)
+
+	monitors, err := monitorRepository.GetAll(context.Background())
+	if err != nil {
+		logger.Fatal(fmt.Sprintf("Error getting monitors: %v", err))
+	}
+
+	for _, monitor := range monitors {
+		err = monitorRegister.Register(monitor)
+		if err != nil {
+			logger.Fatal(fmt.Sprintf("Error registering monitor: %v", err))
+		}
+	}
 
 	pool.Start()
 
@@ -61,7 +73,7 @@ func main() {
 	refreshUseCase := usecases.NewRefreshUseCase(userRepository, refreshTokenRepository, tokenGenerator, sha256Hash, *cfg, logger)
 
 	// Monitor
-	createMonitorUseCase := usecases.NewCreateMonitorUseCase(monitorRepository, logger, &monitorsCh)
+	createMonitorUseCase := usecases.NewCreateMonitorUseCase(monitorRepository, logger, monitorRegister)
 	getMonitorsUseCase := usecases.NewGetMonitorsUseCase(monitorRepository, logger)
 
 	// Handlers
@@ -71,15 +83,6 @@ func main() {
 	// Router
 	appRouter := router.NewAppRouter(authHandler, monitorHandler)
 	router := appRouter.InitializeRoutes()
-
-	monitors, err := monitorRepository.GetAll(context.Background())
-	if err != nil {
-		logger.Fatal(fmt.Sprintf("Error getting monitors: %v", err))
-	}
-
-	for _, monitor := range monitors {
-		monitorsCh <- monitor
-	}
 
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
