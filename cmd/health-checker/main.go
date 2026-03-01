@@ -5,8 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"health-checker/config"
+	"health-checker/internal/application/services"
+	"health-checker/internal/application/usecases"
+	"health-checker/internal/infra/cryptography"
 	router "health-checker/internal/infra/http"
+	"health-checker/internal/infra/http/handlers"
 	"health-checker/internal/infra/logger"
+	dbutils "health-checker/internal/infra/persistence/database"
+	"health-checker/internal/infra/persistence/postgres"
+	register "health-checker/internal/infra/regiter"
+	"health-checker/internal/infra/worker"
 	"log"
 	"net/http"
 	"os"
@@ -22,7 +30,58 @@ func main() {
 	}
 
 	cfg := config.LoadConfig()
-	appRouter := router.NewAppRouter()
+
+	tokenGenerator := cryptography.NewJWTTokenGenerator()
+	hasher := cryptography.NewBcrypterHasher()
+	sha256Hash := cryptography.NewSHA256Hash()
+
+	db, err := dbutils.NewPool(context.Background())
+	if err != nil {
+		logger.Fatal(fmt.Sprintf("Error creating database pool: %v", err))
+	}
+
+	// Repositories
+	userRepository := postgres.NewUserRepository(db)
+	refreshTokenRepository := postgres.NewRefreshTokenRepository(db)
+	monitorRepository := postgres.NewMonitorRepository(db)
+	healthCheckRepository := postgres.NewHealthCheckRepository(db)
+
+	checkerService := services.NewCheckerService(healthCheckRepository, logger)
+	monitorRegister := register.NewMonitorRegister()
+
+	pool := worker.NewWorkerPool(monitorRegister, *checkerService, uint32(cfg.MaxWorkers), logger)
+
+	monitors, err := monitorRepository.GetAll(context.Background())
+	if err != nil {
+		logger.Fatal(fmt.Sprintf("Error getting monitors: %v", err))
+	}
+
+	for _, monitor := range monitors {
+		err = monitorRegister.Register(monitor)
+		if err != nil {
+			logger.Fatal(fmt.Sprintf("Error registering monitor: %v", err))
+		}
+	}
+
+	pool.Start()
+
+	// UseCases
+	// Auth
+	signUpUseCase := usecases.NewSignUpUseCase(userRepository, refreshTokenRepository, hasher, tokenGenerator, sha256Hash, *cfg, logger)
+	loginUseCase := usecases.NewLoginUseCase(userRepository, refreshTokenRepository, hasher, tokenGenerator, sha256Hash, *cfg, logger)
+	logoutUseCase := usecases.NewLogoutUseCase(userRepository, refreshTokenRepository, sha256Hash, logger)
+	refreshUseCase := usecases.NewRefreshUseCase(userRepository, refreshTokenRepository, tokenGenerator, sha256Hash, *cfg, logger)
+
+	// Monitor
+	createMonitorUseCase := usecases.NewCreateMonitorUseCase(monitorRepository, logger, monitorRegister)
+	getMonitorsUseCase := usecases.NewGetMonitorsUseCase(monitorRepository, logger)
+
+	// Handlers
+	authHandler := handlers.NewAuthHandler(*signUpUseCase, *loginUseCase, *logoutUseCase, *refreshUseCase)
+	monitorHandler := handlers.NewMonitorHandler(*createMonitorUseCase, *getMonitorsUseCase)
+
+	// Router
+	appRouter := router.NewAppRouter(authHandler, monitorHandler)
 	router := appRouter.InitializeRoutes()
 
 	server := &http.Server{
@@ -44,6 +103,8 @@ func main() {
 
 	ctx, shutdownRelease := context.WithTimeout(context.Background(), time.Second*10)
 	defer shutdownRelease()
+
+	pool.Shutdown()
 
 	if err := server.Shutdown(ctx); err != nil {
 		log.Fatalf("HTTP shutdown error: %v", err)

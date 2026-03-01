@@ -1,5 +1,4 @@
 services:
-
   health-checker:
     container_name: health-checker
     hostname: health-checker
@@ -9,17 +8,25 @@ services:
       target: development
     volumes:
       - .:/app
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     environment:
       - PORT=3091
       - ENVIRONMENT=dev
-      - DATABASE_URL=postgresql://health-checker:health-checker@postgres-health-checker/health-checker
+      - DATABASE_URL=postgresql://health-checker:health-checker@postgres-health-checker/health-checker?sslmode=disable
+      - ACCESS_TOKEN_SECRET=asdçalkdçlaskqoppiwkad
+      - REFRESH_TOKEN_SECRET=asdçalkdçlaskqoppiwkad
+      - ACCESS_TOKEN_EXPIRATION=15
+      - REFRESH_TOKEN_EXPIRATION=720
+      - MAX_WORKERS=10
     networks:
       - health-checker-net
     ports:
       - 3091:3091
     depends_on:
       - postgres-health-checker
-  
+
   postgres-health-checker:
     image: postgres:13
     hostname: postgres-health-checker
@@ -28,15 +35,44 @@ services:
     networks:
       - health-checker-net
     ports:
-      - 5439:5439
+      - 5439:5432
     environment:
       - POSTGRES_USER=health-checker
       - POSTGRES_PASSWORD=health-checker
       - POSTGRES_DB=health-checker
+      - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
-      - ./.docker/pg-data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
       - ./.docker:/docker-entrypoint-initdb.d/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U health-checker"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    image: migrate/migrate
+    container_name: migrate
+    depends_on:
+      postgres-health-checker:
+        condition: service_healthy
+    networks:
+      - health-checker-net
+    volumes:
+      - ./internal/infra/persistence/database/migrations:/migrations
+
+    command:
+      [
+        "-path",
+        "/migrations",
+        "-database",
+        "postgres://health-checker:health-checker@postgres-health-checker:5432/health-checker?sslmode=disable",
+        "up",
+      ]
 
 networks:
   health-checker-net:
     driver: bridge
+
+volumes:
+  postgres_data:
