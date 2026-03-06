@@ -10,6 +10,7 @@ import (
 	"health-checker/internal/infra/cryptography"
 	router "health-checker/internal/infra/http"
 	"health-checker/internal/infra/http/handlers"
+	"health-checker/internal/infra/http/middlewares"
 	"health-checker/internal/infra/logger"
 	dbutils "health-checker/internal/infra/persistence/database"
 	"health-checker/internal/infra/persistence/postgres"
@@ -87,7 +88,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: router,
+		Handler: middlewares.CorsMiddleware(router),
 	}
 
 	go func() {
